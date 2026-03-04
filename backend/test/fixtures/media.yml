@@ -1,0 +1,45 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  file_path: MyString
+  media_type: MyString
+  project: one
+  rails: MyString
+  g: MyString
+  model: MyString
+  Layer: MyString
+  layer_type: MyString
+  position_x: 1.5
+  position_y: 1.5
+  media: one
+  rails: MyString
+  g: MyString
+  model: MyString
+  Annotation: MyString
+  content: MyString
+  annotation_type: MyString
+  pos_x: 1.5
+  pos_y: 1.5
+  layer: one
+
+two:
+  file_path: MyString
+  media_type: MyString
+  project: two
+  rails: MyString
+  g: MyString
+  model: MyString
+  Layer: MyString
+  layer_type: MyString
+  position_x: 1.5
+  position_y: 1.5
+  media: two
+  rails: MyString
+  g: MyString
+  model: MyString
+  Annotation: MyString
+  content: MyString
+  annotation_type: MyString
+  pos_x: 1.5
+  pos_y: 1.5
+  layer: two

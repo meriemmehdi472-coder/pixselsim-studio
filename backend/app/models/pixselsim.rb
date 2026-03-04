@@ -1,0 +1,2 @@
+class Pixselsim < ApplicationRecord
+end

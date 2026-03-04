@@ -1,0 +1,15 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  content: MyString
+  annotation_type: MyString
+  pos_x: 1.5
+  pos_y: 1.5
+  layer: one
+
+two:
+  content: MyString
+  annotation_type: MyString
+  pos_x: 1.5
+  pos_y: 1.5
+  layer: two

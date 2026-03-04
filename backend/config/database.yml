@@ -1,0 +1,20 @@
+default: &default
+  adapter: postgresql
+  encoding: unicode
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  username: meriem
+  password: Moulou02
+  host: localhost
+  port: 5433
+
+development:
+  <<: *default
+  database: pixselsim_development
+
+test:
+  <<: *default
+  database: pixselsim_test
+
+production:
+  <<: *default
+  database: pixselsim_production
