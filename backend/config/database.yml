@@ -2,20 +2,23 @@ default: &default
   adapter: postgresql
   encoding: unicode
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+
+development:
+  <<: *default
+  database: pixselsim_development
   username: meriem
   password: Moulou02
   host: localhost
   port: 5433
 
-development:
-  <<: *default
-  database: pixselsim_development
-
 test:
   <<: *default
   database: pixselsim_test
+  username: meriem
+  password: Moulou02
+  host: localhost
+  port: 5433
 
 production:
   <<: *default
-  database: pixselsim_production
-url: <%= ENV["DATABASE_URL"] %>
+  url: <%= ENV["DATABASE_URL"] %>
