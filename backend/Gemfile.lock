@@ -87,7 +87,7 @@ GEM
     builder (3.3.0)
     cgi (0.5.1)
     concurrent-ruby (1.3.6)
-    connection_pool (3.0.2)
+    connection_pool (2.4.1)
     crass (1.0.6)
     date (3.5.1)
     debug (1.11.1)
@@ -135,6 +135,7 @@ GEM
       drb (~> 2.0)
       prism (~> 1.5)
     msgpack (1.8.0)
+    multi_json (1.19.1)
     net-imap (0.6.3)
       date
       net-protocol
@@ -232,6 +233,10 @@ GEM
       erb
       psych (>= 4.0.0)
       tsort
+    redis (5.4.1)
+      redis-client (>= 0.22.0)
+    redis-client (0.26.4)
+      connection_pool
     regexp_parser (2.11.3)
     reline (0.6.3)
       io-console (~> 0.5)
@@ -266,6 +271,12 @@ GEM
       rubocop-rails (>= 2.30)
     ruby-progressbar (1.13.0)
     securerandom (0.4.1)
+    sidekiq (7.3.10)
+      base64
+      connection_pool (>= 2.3.0, < 3)
+      logger
+      rack (>= 2.2.4, < 3.3)
+      redis-client (>= 0.23.0, < 1)
     solid_queue (1.3.2)
       activejob (>= 7.1)
       activerecord (>= 7.1)
@@ -273,6 +284,8 @@ GEM
       fugit (~> 1.11)
       railties (>= 7.1)
       thor (>= 1.3.1)
+    streamio-ffmpeg (3.0.2)
+      multi_json (~> 1.8)
     stringio (3.2.0)
     thor (1.5.0)
     timeout (0.6.0)
@@ -304,13 +317,17 @@ PLATFORMS
 DEPENDENCIES
   bootsnap
   brakeman
+  connection_pool (= 2.4.1)
   debug
   pg (~> 1.1)
   puma (>= 5.0)
   rack-cors
   rails (~> 7.2.3)
+  redis
   rubocop-rails-omakase
+  sidekiq
   solid_queue
+  streamio-ffmpeg
   tzinfo-data
 
 BUNDLED WITH
