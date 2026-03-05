@@ -39,8 +39,8 @@ export default function ProjectDetailPage() {
     try {
       const fd = new FormData();
       // "file" doit correspondre au nom attendu par has_one_attached :file dans Rails
-      fd.append("media_file[file]", file); 
-      fd.append("media_file[media_type]", file.type.startsWith("video/") ? "video" : "image");
+      fd.append("file", file); 
+      fd.append("media_type", file.type.startsWith("video/") ? "video" : "image");
       fd.append("media_file[file_path]", file.name);
 
       const mf = await request(`/projects/${projectId}/media_files`, { 
