@@ -130,6 +130,8 @@ GEM
     marcel (1.1.0)
     mcp (0.8.0)
       json-schema (>= 4.1)
+    mini_magick (5.3.1)
+      logger
     mini_mime (1.1.5)
     minitest (6.0.2)
       drb (~> 2.0)
@@ -319,6 +321,7 @@ DEPENDENCIES
   brakeman
   connection_pool (= 2.4.1)
   debug
+  mini_magick (~> 5.3)
   pg (~> 1.1)
   puma (>= 5.0)
   rack-cors

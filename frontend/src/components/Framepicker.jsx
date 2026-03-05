@@ -1,72 +1,45 @@
+// components/Framepicker.jsx
+// Identique à l'original mais onAdd transmet aussi frameColor et frameThickness
+// pour que l'export back-end (ImageMagick / ffmpeg) puisse utiliser ces valeurs.
+
 import { useState } from "react";
 import { COLORS, FONT } from "../styles";
 
 export const FRAME_PRESETS = [
-  // ── Formes (clip-path / border-radius) ──────────────────────────────────
-  { id: "rect",     label: "Rectangle",  category: "forme",     clipType: "radius", clipValue: "0px",
-    border: { style: "3px solid #fff" } },
-  { id: "rounded",  label: "Arrondi",    category: "forme",     clipType: "radius", clipValue: "20px",
-    border: { style: "3px solid #fff" } },
-  { id: "circle",   label: "Cercle",     category: "forme",     clipType: "radius", clipValue: "50%",
-    border: { style: "3px solid #fff" } },
-  { id: "squircle", label: "Squircle",   category: "forme",     clipType: "radius", clipValue: "30%",
-    border: { style: "3px solid #fff" } },
-  { id: "diamond",  label: "Losange",    category: "forme",     clipType: "clip",
-    clipValue: "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)",
-    border: null },
-  { id: "triangle", label: "Triangle",   category: "forme",     clipType: "clip",
-    clipValue: "polygon(50% 0%, 100% 100%, 0% 100%)",
-    border: null },
-  { id: "pentagon", label: "Pentagone",  category: "forme",     clipType: "clip",
-    clipValue: "polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%)",
-    border: null },
-  { id: "hexagon",  label: "Hexagone",   category: "forme",     clipType: "clip",
-    clipValue: "polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)",
-    border: null },
-  { id: "star",     label: "Étoile",     category: "forme",     clipType: "clip",
-    clipValue: "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)",
-    border: null },
-  { id: "heart",    label: "Cœur",       category: "forme",     clipType: "clip",
-    clipValue: "path('M12,21.593c-5.63-5.539-11-10.297-11-14.402c0-3.791,3.068-5.191,5.281-5.191c1.312,0,4.151,1.018,5.719,4.338c1.567-3.32,4.407-4.338,5.719-4.338c2.212,0,5.281,1.4,5.281,5.191C23,11.297,17.629,16.054,12,21.593z')",
-    border: null },
-  // ── Décoratifs (bordures stylées sur fond masqué) ────────────────────────
-  { id: "polaroid", label: "Polaroid",   category: "décoratif", clipType: "radius", clipValue: "4px",
-    border: { style: "12px solid #fff", bottom: "40px solid #fff", shadow: "0 4px 20px rgba(0,0,0,.4)" } },
-  { id: "vintage",  label: "Vintage",    category: "décoratif", clipType: "radius", clipValue: "2px",
-    border: { style: "6px double #c8a96e", inset: "0 0 0 2px #c8a96e" } },
-  { id: "neon_b",   label: "Néon Bleu",  category: "décoratif", clipType: "radius", clipValue: "8px",
-    border: { style: "2px solid #00d4ff", glow: "0 0 16px #00d4ff, 0 0 40px #00d4ff" } },
-  { id: "neon_p",   label: "Néon Rose",  category: "décoratif", clipType: "radius", clipValue: "8px",
-    border: { style: "2px solid #ff2d78", glow: "0 0 16px #ff2d78, 0 0 40px #ff2d78" } },
-  { id: "neon_g",   label: "Néon Vert",  category: "décoratif", clipType: "radius", clipValue: "8px",
-    border: { style: "2px solid #39ff14", glow: "0 0 16px #39ff14, 0 0 40px #39ff14" } },
-  { id: "gold",     label: "Or",         category: "décoratif", clipType: "radius", clipValue: "4px",
-    border: { style: "4px solid #f59e0b", glow: "0 0 16px rgba(245,158,11,.5)" } },
-  { id: "film",     label: "Film",       category: "décoratif", clipType: "radius", clipValue: "2px",
-    border: { style: "8px solid #111", inset: "0 0 0 2px #fff" } },
+  { id: "rect",     label: "Rectangle",  category: "forme",     clipType: "radius", clipValue: "0px",   border: { style: "3px solid #fff" } },
+  { id: "rounded",  label: "Arrondi",    category: "forme",     clipType: "radius", clipValue: "20px",  border: { style: "3px solid #fff" } },
+  { id: "circle",   label: "Cercle",     category: "forme",     clipType: "radius", clipValue: "50%",   border: { style: "3px solid #fff" } },
+  { id: "squircle", label: "Squircle",   category: "forme",     clipType: "radius", clipValue: "30%",   border: { style: "3px solid #fff" } },
+  { id: "diamond",  label: "Losange",    category: "forme",     clipType: "clip",   clipValue: "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)", border: null },
+  { id: "triangle", label: "Triangle",   category: "forme",     clipType: "clip",   clipValue: "polygon(50% 0%, 100% 100%, 0% 100%)", border: null },
+  { id: "pentagon", label: "Pentagone",  category: "forme",     clipType: "clip",   clipValue: "polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%)", border: null },
+  { id: "hexagon",  label: "Hexagone",   category: "forme",     clipType: "clip",   clipValue: "polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)", border: null },
+  { id: "star",     label: "Étoile",     category: "forme",     clipType: "clip",   clipValue: "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)", border: null },
+  { id: "heart",    label: "Cœur",       category: "forme",     clipType: "clip",   clipValue: "path('M12,21.593c-5.63-5.539-11-10.297-11-14.402c0-3.791,3.068-5.191,5.281-5.191c1.312,0,4.151,1.018,5.719,4.338c1.567-3.32,4.407-4.338,5.719-4.338c2.212,0,5.281,1.4,5.281,5.191C23,11.297,17.629,16.054,12,21.593z')", border: null },
+  { id: "polaroid", label: "Polaroid",   category: "décoratif", clipType: "radius", clipValue: "4px",   border: { style: "12px solid #fff", bottom: "40px solid #fff", shadow: "0 4px 20px rgba(0,0,0,.4)" } },
+  { id: "vintage",  label: "Vintage",    category: "décoratif", clipType: "radius", clipValue: "2px",   border: { style: "6px double #c8a96e", inset: "0 0 0 2px #c8a96e" } },
+  { id: "neon_b",   label: "Néon Bleu",  category: "décoratif", clipType: "radius", clipValue: "8px",   border: { style: "2px solid #00d4ff", glow: "0 0 16px #00d4ff, 0 0 40px #00d4ff" } },
+  { id: "neon_p",   label: "Néon Rose",  category: "décoratif", clipType: "radius", clipValue: "8px",   border: { style: "2px solid #ff2d78", glow: "0 0 16px #ff2d78, 0 0 40px #ff2d78" } },
+  { id: "neon_g",   label: "Néon Vert",  category: "décoratif", clipType: "radius", clipValue: "8px",   border: { style: "2px solid #39ff14", glow: "0 0 16px #39ff14, 0 0 40px #39ff14" } },
+  { id: "gold",     label: "Or",         category: "décoratif", clipType: "radius", clipValue: "4px",   border: { style: "4px solid #f59e0b", glow: "0 0 16px rgba(245,158,11,.5)" } },
+  { id: "film",     label: "Film",       category: "décoratif", clipType: "radius", clipValue: "2px",   border: { style: "8px solid #111", inset: "0 0 0 2px #fff" } },
 ];
 
 const CATEGORIES   = ["tous", "forme", "décoratif"];
 const COLOR_PICKER = ["#ffffff","#000000","#f59e0b","#6366f1","#ef4444","#22c55e","#00d4ff","#ff2d78","#39ff14","#c8a96e","#f97316","#a855f7"];
 
-// ── Calcule le style CSS final du wrapper (masque + bordure) ───────────────
 export function buildFrameStyle(preset, customColor, thickness) {
   const color = customColor || null;
   const brd   = preset.border;
-
-  // Style appliqué AU WRAPPER qui contient l'image
   const wrapperStyle = {};
-  // Style appliqué À L'IMAGE elle-même (clip)
   const mediaStyle = {};
 
-  // 1. Masque de forme sur l'image
   if (preset.clipType === "radius") {
     mediaStyle.borderRadius = preset.clipValue;
   } else if (preset.clipType === "clip") {
     mediaStyle.clipPath = preset.clipValue;
   }
 
-  // 2. Bordure sur le wrapper
   if (brd) {
     const borderColor = color || (brd.style?.match(/#[0-9a-fA-F]+|rgb[^)]+\)/))?.[0] || "#fff";
     const bWidth      = thickness ? `${thickness}px` : (brd.style?.match(/^\d+px/))?.[0] || "3px";
@@ -77,14 +50,12 @@ export function buildFrameStyle(preset, customColor, thickness) {
     if (brd.shadow)  wrapperStyle.boxShadow    = brd.shadow;
     if (brd.glow)    wrapperStyle.boxShadow    = brd.glow;
     if (brd.inset)   wrapperStyle.boxShadow    = `inset ${brd.inset}`;
-    // Arrondi du wrapper suit la forme
     if (preset.clipType === "radius") wrapperStyle.borderRadius = preset.clipValue;
   }
 
   return { wrapperStyle, mediaStyle };
 }
 
-// ── Mini aperçu d'un preset ───────────────────────────────────────────────
 function PresetThumb({ preset, active, onClick }) {
   const { wrapperStyle, mediaStyle } = buildFrameStyle(preset, null, null);
   return (
@@ -99,18 +70,27 @@ function PresetThumb({ preset, active, onClick }) {
 }
 
 export default function FramePicker({ onAdd }) {
-  const [category, setCategory]   = useState("tous");
-  const [selected, setSelected]   = useState(FRAME_PRESETS[0]);
+  const [category, setCategory]       = useState("tous");
+  const [selected, setSelected]       = useState(FRAME_PRESETS[0]);
   const [customColor, setCustomColor] = useState(null);
-  const [thickness, setThickness] = useState(null);
+  const [thickness, setThickness]     = useState(null);
 
   const filtered = category === "tous" ? FRAME_PRESETS : FRAME_PRESETS.filter(f => f.category === category);
   const { wrapperStyle, mediaStyle } = buildFrameStyle(selected, customColor, thickness);
 
+  const handleApply = () => {
+    onAdd({
+      preset:         selected,
+      wrapperStyle,
+      mediaStyle,
+      frameColor:     customColor,     // ← transmis pour l'export back-end
+      frameThickness: thickness,       // ← transmis pour l'export back-end
+    });
+  };
+
   return (
     <div style={{ background: COLORS.surface, borderTop: `1px solid ${COLORS.border}`, padding: "16px 24px", fontFamily: FONT, display: "flex", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
 
-      {/* ── Catégories ── */}
       <div style={{ minWidth: 110 }}>
         <div style={lbl}>Catégorie</div>
         {CATEGORIES.map(c => (
@@ -121,7 +101,6 @@ export default function FramePicker({ onAdd }) {
         ))}
       </div>
 
-      {/* ── Grille presets ── */}
       <div style={{ flex: 1, minWidth: 300 }}>
         <div style={lbl}>Forme / Style</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10, paddingBottom: 20 }}>
@@ -132,7 +111,6 @@ export default function FramePicker({ onAdd }) {
         </div>
       </div>
 
-      {/* ── Personnalisation bordure ── */}
       {selected.border && (
         <div style={{ minWidth: 180 }}>
           <div style={lbl}>Couleur bordure</div>
@@ -151,7 +129,6 @@ export default function FramePicker({ onAdd }) {
         </div>
       )}
 
-      {/* ── Aperçu + Ajouter ── */}
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, minWidth: 110 }}>
         <div style={lbl}>Aperçu</div>
         <div style={{ width: 80, height: 80, background: "#111", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
@@ -159,7 +136,7 @@ export default function FramePicker({ onAdd }) {
             <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg, #6366f1 0%, #f59e0b 50%, #22c55e 100%)", ...mediaStyle }} />
           </div>
         </div>
-        <button onClick={() => onAdd({ preset: selected, wrapperStyle, mediaStyle })}
+        <button onClick={handleApply}
           style={{ background: COLORS.accent, color: "#fff", border: "none", borderRadius: 8, padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FONT, width: "100%" }}>
           + Appliquer
         </button>

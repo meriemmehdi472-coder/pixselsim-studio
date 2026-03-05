@@ -1,6 +1,4 @@
 // components/EditorSidebar.jsx
-// Toute la sidebar gauche de l'éditeur : navigation, outils, calques, export.
-
 import { useState } from "react";
 import { COLORS, FONT } from "../styles";
 import ToolBar from "./ToolBar";
@@ -24,8 +22,11 @@ function Section({ title, children, defaultOpen = true }) {
 export default function EditorSidebar({
   // navigation
   isVideo, onBack,
-  // undo/redo
+  // undo/redo calques
   undo, redo, canUndo, canRedo,
+  // historique versions média (crop vidéo)
+  canUndoMedia, canRedoMedia, onUndoMedia, onRedoMedia,
+  mediaVersionIdx, mediaVersionsCount, videoCropLoading,
   // outils
   activeTool, onToolSelect,
   textInput, onTextChange,
@@ -35,7 +36,7 @@ export default function EditorSidebar({
   layers, onDeleteLayer, onEditLayer,
   // crop photo
   cropHistory, onUndoPhotoCrop,
-  // crop vidéo
+  // crop vidéo (preview CSS — plus utilisé pour l'export)
   pendingCrop, onModifyVideoCrop, onCancelVideoCrop,
   // export photo
   exportFmt, onExportFmtChange, onExportImage, exporting,
@@ -59,7 +60,7 @@ export default function EditorSidebar({
         </div>
       </div>
 
-      {/* ── Undo / Redo ── */}
+      {/* ── Undo / Redo calques ── */}
       <div style={{ display: "flex", gap: 6, padding: "10px 16px", borderBottom: "1px solid #1a1a2e" }}>
         {[{ label: "↩", title: "Ctrl+Z", fn: undo, can: canUndo }, { label: "↪", title: "Ctrl+Y", fn: redo, can: canRedo }].map(b => (
           <button key={b.label} onClick={b.fn} disabled={!b.can} title={b.title}
@@ -68,6 +69,38 @@ export default function EditorSidebar({
           </button>
         ))}
       </div>
+
+      {/* ── Historique versions vidéo (crop) ── */}
+      {isVideo && mediaVersionsCount > 1 && (
+        <div style={{ padding: "8px 16px", borderBottom: "1px solid #1a1a2e" }}>
+          <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: 2, color: "#334155", marginBottom: 6 }}>
+            Versions vidéo
+          </div>
+          <div style={{ fontSize: 11, color: "#475569", marginBottom: 6, textAlign: "center" }}>
+            v{mediaVersionIdx + 1} / {mediaVersionsCount}
+          </div>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button onClick={onUndoMedia} disabled={!canUndoMedia || videoCropLoading}
+              title="Version précédente"
+              style={{ flex: 1, padding: "7px 0", borderRadius: 6, border: `1px solid ${canUndoMedia ? "#f59e0b44" : "#161622"}`, background: canUndoMedia ? "#f59e0b11" : "transparent", color: canUndoMedia ? "#f59e0b" : "#1e1e2e", cursor: canUndoMedia ? "pointer" : "not-allowed", fontSize: 13 }}>
+              ↩
+            </button>
+            <button onClick={onRedoMedia} disabled={!canRedoMedia || videoCropLoading}
+              title="Version suivante"
+              style={{ flex: 1, padding: "7px 0", borderRadius: 6, border: `1px solid ${canRedoMedia ? "#f59e0b44" : "#161622"}`, background: canRedoMedia ? "#f59e0b11" : "transparent", color: canRedoMedia ? "#f59e0b" : "#1e1e2e", cursor: canRedoMedia ? "pointer" : "not-allowed", fontSize: 13 }}>
+              ↪
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Spinner crop en cours ── */}
+      {videoCropLoading && (
+        <div style={{ margin: "8px 16px", padding: "10px 12px", background: "#f59e0b11", border: "1px solid #f59e0b33", borderRadius: 8, textAlign: "center" }}>
+          <div style={{ fontSize: 11, color: "#f59e0b", fontWeight: 700 }}>⏳ Recadrage ffmpeg…</div>
+          <div style={{ fontSize: 10, color: "#475569", marginTop: 2 }}>Quelques secondes</div>
+        </div>
+      )}
 
       {/* ── Outils ── */}
       <Section title="Outils">
@@ -92,19 +125,6 @@ export default function EditorSidebar({
         </div>
       )}
 
-      {/* ── Zone vidéo sélectionnée ── */}
-      {isVideo && pendingCrop && (
-        <div style={{ margin: "8px 16px", padding: "10px 12px", background: "#22c55e11", border: "1px solid #22c55e33", borderRadius: 8 }}>
-          <div style={{ fontSize: 11, color: "#22c55e", fontWeight: 700 }}>✓ Zone sélectionnée</div>
-          <div style={{ fontSize: 10, color: "#475569", marginTop: 2 }}>{pendingCrop.w} × {pendingCrop.h} px</div>
-          <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-            <button onClick={onModifyVideoCrop} style={{ background: "none", border: "none", color: "#f59e0b", cursor: "pointer", fontSize: 10, padding: 0, fontFamily: FONT }}>✏️ Modifier</button>
-            <span style={{ color: "#1e1e2e" }}>·</span>
-            <button onClick={onCancelVideoCrop} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 10, padding: 0, fontFamily: FONT }}>✕ Annuler</button>
-          </div>
-        </div>
-      )}
-
       {/* ── Spacer ── */}
       <div style={{ flex: 1 }} />
 
@@ -113,6 +133,7 @@ export default function EditorSidebar({
         <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: 2, color: "#334155", marginBottom: 10 }}>Exporter</div>
 
         {!isVideo ? (
+          /* ── Photo : ImageMagick back-end ── */
           <>
             <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
               {["png", "jpeg"].map(f => (
@@ -124,26 +145,26 @@ export default function EditorSidebar({
             </div>
             <button onClick={onExportImage} disabled={exporting}
               style={{ width: "100%", padding: "11px 0", borderRadius: 8, border: "none", background: exporting ? "#1e1e2e" : "linear-gradient(135deg,#6366f1,#8b5cf6)", color: exporting ? "#475569" : "#fff", cursor: exporting ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 800, fontFamily: FONT }}>
-              {exporting ? "⏳ Export..." : "⬇ Télécharger"}
+              {exporting ? "⏳ Export ImageMagick…" : "⬇ Télécharger"}
             </button>
           </>
         ) : (
+          /* ── Vidéo : ffmpeg asynchrone ── */
           <>
-            {!pendingCrop && (
-              <button onClick={onSelectZone}
-                style={{ width: "100%", padding: "9px 0", borderRadius: 7, border: "1px solid #f59e0b44", background: "#f59e0b11", color: "#f59e0b", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: FONT, marginBottom: 8 }}>
-                ✂️ Sélectionner zone
-              </button>
-            )}
-            <button onClick={onExportVideo} disabled={busy}
+            <button onClick={onSelectZone}
+              style={{ width: "100%", padding: "9px 0", borderRadius: 7, border: "1px solid #f59e0b44", background: "#f59e0b11", color: "#f59e0b", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: FONT, marginBottom: 8 }}>
+              ✂️ Recadrer la vidéo
+            </button>
+
+            <button onClick={onExportVideo} disabled={busy || videoCropLoading}
               style={{ width: "100%", padding: "11px 0", borderRadius: 8, border: "none", background: busy ? "#1e1e2e" : "linear-gradient(135deg,#7c3aed,#6366f1)", color: busy ? "#475569" : "#fff", cursor: busy ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 800, fontFamily: FONT, marginBottom: 8 }}>
-              {busy ? "⏳ Traitement ffmpeg..." : pendingCrop ? "🎬 Exporter zone MP4" : "🎬 Exporter MP4 final"}
+              {busy ? "⏳ Traitement ffmpeg…" : "🎬 Exporter MP4 final"}
             </button>
 
             {videoExportStatus && videoExportStatus !== "done" && (
               <div style={{ fontSize: 11, color: statusColor, textAlign: "center", padding: "4px 0", marginBottom: 6 }}>
-                {videoExportStatus === "pending"    && "• En file d'attente..."}
-                {videoExportStatus === "processing" && "• ffmpeg en cours..."}
+                {videoExportStatus === "pending"    && "• En file d'attente…"}
+                {videoExportStatus === "processing" && "• ffmpeg en cours…"}
                 {videoExportStatus === "failed"     && "✗ Échec — voir logs Rails"}
               </div>
             )}

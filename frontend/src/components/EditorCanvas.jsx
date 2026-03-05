@@ -1,5 +1,6 @@
 // components/EditorCanvas.jsx
 // Zone de rendu centrale : image/vidéo + calques + overlays crop.
+// Le bouton × du cadre est caché via CSS print/export — il ne fait pas partie du canvasWrapRef.
 
 import { FONT } from "../styles";
 
@@ -7,6 +8,7 @@ export default function EditorCanvas({
   // media
   isVideo, mediaFile, imgSrc,
   pendingCrop, pendingCropPreviewUrl,
+  videoCropLoading,
   // calques
   layers, dragging, livePos, editingLayer,
   // events
@@ -29,7 +31,6 @@ export default function EditorCanvas({
   const buildVideoCropStyle = (crop) => {
     if (!crop || !crop.video_w || !crop.video_h) return {};
     const { x, y, w, h, video_w, video_h } = crop;
-
     const x1 = (x / video_w * 100).toFixed(2);
     const y1 = (y / video_h * 100).toFixed(2);
     const x2 = ((x + w) / video_w * 100).toFixed(2);
@@ -37,7 +38,6 @@ export default function EditorCanvas({
     const scaleX = video_w / w;
     const scaleY = video_h / h;
     const scale  = Math.min(scaleX, scaleY);
-
     return {
       clipPath: `inset(${y1}% ${(100 - parseFloat(x2)).toFixed(2)}% ${(100 - parseFloat(y2)).toFixed(2)}% ${x1}%)`,
       transform: `scale(${scale})`,
@@ -56,12 +56,12 @@ export default function EditorCanvas({
             {activeTool}
           </span>
         )}
-        {isVideo && pendingCrop && !activeTool && (
-          <span style={{ fontSize: 11, color: "#22c55e", background: "#22c55e22", padding: "2px 8px", borderRadius: 4, fontFamily: FONT }}>
-            ✓ Aperçu zone recadrée
+        {videoCropLoading && (
+          <span style={{ fontSize: 11, color: "#f59e0b", background: "#f59e0b22", padding: "2px 8px", borderRadius: 4, fontFamily: FONT }}>
+            ⏳ Recadrage…
           </span>
         )}
-        {isVideo && !activeTool && !pendingCrop && (
+        {isVideo && !activeTool && !videoCropLoading && (
           <span style={{ fontSize: 11, color: "#f59e0b66" }}>Met en pause pour ajouter texte/emoji</span>
         )}
         <div style={{ marginLeft: "auto", display: "flex", gap: 8, paddingRight: 16, fontSize: 10, color: "#2a2a3e" }}>
@@ -72,87 +72,96 @@ export default function EditorCanvas({
 
       {/* ── Canvas centré ── */}
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", padding: 24 }}>
-        <div ref={canvasWrapRef}
-          style={{ position: "relative", display: "inline-block", borderRadius: 4, boxShadow: "0 0 0 1px #2a2a3e, 0 32px 100px rgba(0,0,0,.9)" }}>
 
-          {/* ── Bouton × cadre — EN DEHORS de containerRef ── */}
-          {layers.some(l => l.layer_type === "frame") && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onDeleteFrame(); }}
-              style={{
-                position: "absolute", top: -12, right: -12, zIndex: 50,
-                background: "rgba(239,68,68,.9)", border: "2px solid #fff",
-                color: "#fff", borderRadius: "50%", width: 28, height: 28,
-                cursor: "pointer", fontSize: 16, fontWeight: 800,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                boxShadow: "0 2px 8px rgba(0,0,0,.5)"
-              }}>
-              ×
-            </button>
-          )}
+        {/* Spinner plein écran pendant le crop ffmpeg */}
+        {videoCropLoading ? (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+            <div style={{ width: 48, height: 48, border: "4px solid #f59e0b22", borderTop: "4px solid #f59e0b", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+            <div style={{ color: "#f59e0b", fontSize: 14, fontFamily: FONT, fontWeight: 700 }}>Recadrage en cours…</div>
+            <div style={{ color: "#475569", fontSize: 11, fontFamily: FONT }}>ffmpeg traite la vidéo côté serveur</div>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
+        ) : (
+          <div ref={canvasWrapRef}
+            style={{ position: "relative", display: "inline-block", borderRadius: 4, boxShadow: "0 0 0 1px #2a2a3e, 0 32px 100px rgba(0,0,0,.9)" }}>
 
-          <div ref={containerRef}
-            onClick={onClick}
-            onMouseDown={onMouseDown}
-            onMouseMove={onMouseMove}
-            onMouseUp={onMouseUp}
-            style={{ position: "relative", display: "inline-block", lineHeight: 0, userSelect: "none", cursor: activeTool === "crop" && !isVideo ? "crosshair" : (activeTool && activeTool !== "frame") ? "copy" : "default" }}>
+            {/* ── Bouton × cadre — EN DEHORS de containerRef pour ne pas apparaître dans l'export ── */}
+            {layers.some(l => l.layer_type === "frame") && (
+              <button
+                className="frame-delete-btn"
+                onClick={(e) => { e.stopPropagation(); onDeleteFrame(); }}
+                style={{
+                  position: "absolute", top: -12, right: -12, zIndex: 50,
+                  background: "rgba(239,68,68,.9)", border: "2px solid #fff",
+                  color: "#fff", borderRadius: "50%", width: 28, height: 28,
+                  cursor: "pointer", fontSize: 16, fontWeight: 800,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  boxShadow: "0 2px 8px rgba(0,0,0,.5)"
+                }}>
+                ×
+              </button>
+            )}
 
-            {/* ── Média ── */}
-            <div style={{ display: "inline-block", overflow: "hidden", lineHeight: 0, ...ws }}>
-              {isVideo ? (
-                <video
-                  ref={imgRef}
-                  src={mediaFile?.url}
-                  controls
-                  style={pendingCrop
-                    ? { ...mediaStyle, ...buildVideoCropStyle(pendingCrop) }
-                    : mediaStyle
-                  }
-                />
-              ) : imgSrc ? (
-                <img ref={imgRef} src={imgSrc} alt="" draggable={false} crossOrigin="anonymous" style={{ ...mediaStyle, objectFit: "contain" }} />
-              ) : (
-                <div style={{ width: 800, height: 500, background: "#131320", display: "flex", alignItems: "center", justifyContent: "center", color: "#1e1e2e", fontSize: 64 }}>🖼️</div>
-              )}
-            </div>
+            <div ref={containerRef}
+              onClick={onClick}
+              onMouseDown={onMouseDown}
+              onMouseMove={onMouseMove}
+              onMouseUp={onMouseUp}
+              style={{ position: "relative", display: "inline-block", lineHeight: 0, userSelect: "none", cursor: activeTool === "crop" && !isVideo ? "crosshair" : (activeTool && activeTool !== "frame") ? "copy" : "default" }}>
 
-            {/* ── Calques texte / emoji ── */}
-            {layers.filter(l => l.layer_type !== "frame").map(layer => {
-              const pos = livePos[layer.id] || { x: layer.position_x, y: layer.position_y };
-              return (
-                <div key={layer.id}
-                  onMouseDown={(e) => onLayerMouseDown(e, layer)}
-                  onClick={(e) => { e.stopPropagation(); onLayerClick(layer); }}
-                  style={{ position: "absolute", left: pos.x, top: pos.y, transform: "translate(-50%,-50%)", cursor: dragging === layer.id ? "grabbing" : layer.layer_type === "text" ? "pointer" : "grab", zIndex: 10, userSelect: "none" }}>
+              {/* ── Média ── */}
+              <div style={{ display: "inline-block", overflow: "hidden", lineHeight: 0, ...ws }}>
+                {isVideo ? (
+                  <video
+                    ref={imgRef}
+                    src={mediaFile?.url}
+                    controls
+                    style={mediaStyle}
+                  />
+                ) : imgSrc ? (
+                  <img ref={imgRef} src={imgSrc} alt="" draggable={false} crossOrigin="anonymous" style={{ ...mediaStyle, objectFit: "contain" }} />
+                ) : (
+                  <div style={{ width: 800, height: 500, background: "#131320", display: "flex", alignItems: "center", justifyContent: "center", color: "#1e1e2e", fontSize: 64 }}>🖼️</div>
+                )}
+              </div>
 
-                  {layer.layer_type === "text" && (
-                    <div style={{ background: "rgba(0,0,0,.72)", color: layer.textColor || "#fff", padding: "5px 14px", borderRadius: 6, fontSize: layer.fontSize || 18, fontWeight: 700, whiteSpace: "nowrap", backdropFilter: "blur(6px)", border: "1px solid rgba(255,255,255,.12)", fontFamily: FONT, outline: editingLayer?.id === layer.id ? "2px solid #6366f1" : "none" }}>
-                      {layer.annotations[0]?.content}
-                    </div>
-                  )}
+              {/* ── Calques texte / emoji ── */}
+              {layers.filter(l => l.layer_type !== "frame").map(layer => {
+                const pos = livePos[layer.id] || { x: layer.position_x, y: layer.position_y };
+                return (
+                  <div key={layer.id}
+                    onMouseDown={(e) => onLayerMouseDown(e, layer)}
+                    onClick={(e) => { e.stopPropagation(); onLayerClick(layer); }}
+                    style={{ position: "absolute", left: pos.x, top: pos.y, transform: "translate(-50%,-50%)", cursor: dragging === layer.id ? "grabbing" : layer.layer_type === "text" ? "pointer" : "grab", zIndex: 10, userSelect: "none" }}>
 
-                  {layer.layer_type === "emoji" && (
-                    <div style={{ fontSize: 44, lineHeight: 1, filter: "drop-shadow(0 3px 10px rgba(0,0,0,.7))" }}>
-                      {layer.annotations[0]?.content || "😂"}
+                    {layer.layer_type === "text" && (
+                      <div style={{ background: "rgba(0,0,0,.72)", color: layer.textColor || "#fff", padding: "5px 14px", borderRadius: 6, fontSize: layer.fontSize || 18, fontWeight: 700, whiteSpace: "nowrap", backdropFilter: "blur(6px)", border: "1px solid rgba(255,255,255,.12)", fontFamily: FONT, outline: editingLayer?.id === layer.id ? "2px solid #6366f1" : "none" }}>
+                        {layer.annotations[0]?.content}
+                      </div>
+                    )}
+
+                    {layer.layer_type === "emoji" && (
+                      <div style={{ fontSize: 44, lineHeight: 1, filter: "drop-shadow(0 3px 10px rgba(0,0,0,.7))" }}>
+                        {layer.annotations[0]?.content || "😂"}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* ── Overlay recadrage photo ── */}
+              {activeTool === "crop" && cropRect && !isVideo && (
+                <div style={{ position: "absolute", left: cropRect.x, top: cropRect.y, width: cropRect.w, height: cropRect.h, border: "2px solid #f59e0b", background: "rgba(245,158,11,.08)", pointerEvents: "none", zIndex: 20, boxShadow: "0 0 0 9999px rgba(0,0,0,.6)" }}>
+                  {cropRect.w > 50 && (
+                    <div style={{ position: "absolute", bottom: -24, left: 0, background: "#f59e0b", color: "#000", fontSize: 11, padding: "2px 7px", borderRadius: 4, fontWeight: 800, whiteSpace: "nowrap" }}>
+                      {Math.round(cropRect.w)} × {Math.round(cropRect.h)}
                     </div>
                   )}
                 </div>
-              );
-            })}
-
-            {/* ── Overlay recadrage photo ── */}
-            {activeTool === "crop" && cropRect && !isVideo && (
-              <div style={{ position: "absolute", left: cropRect.x, top: cropRect.y, width: cropRect.w, height: cropRect.h, border: "2px solid #f59e0b", background: "rgba(245,158,11,.08)", pointerEvents: "none", zIndex: 20, boxShadow: "0 0 0 9999px rgba(0,0,0,.6)" }}>
-                {cropRect.w > 50 && (
-                  <div style={{ position: "absolute", bottom: -24, left: 0, background: "#f59e0b", color: "#000", fontSize: 11, padding: "2px 7px", borderRadius: 4, fontWeight: 800, whiteSpace: "nowrap" }}>
-                    {Math.round(cropRect.w)} × {Math.round(cropRect.h)}
-                  </div>
-                )}
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

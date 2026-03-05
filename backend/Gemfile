@@ -43,3 +43,5 @@ end
 
 gem "solid_queue"
 gem "connection_pool", "2.4.1"
+
+gem "mini_magick", "~> 5.3"
