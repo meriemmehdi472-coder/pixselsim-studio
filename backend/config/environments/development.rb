@@ -14,14 +14,19 @@ Rails.application.configure do
     config.cache_store = :null_store
   end
 
+  # Utilise le stockage local (attention : s'efface au redémarrage sur Render)
   config.active_storage.service = :local
 
   config.action_mailer.raise_delivery_errors = false
   config.action_mailer.perform_caching = false
-  config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
 
-  # ← Fix "Missing host to link to" dans les jobs background
-  Rails.application.routes.default_url_options = { host: "localhost", port: 3000 }
+  # --- AJUSTEMENT DYNAMIQUE DES URLS ---
+  # Si BACKEND_URL existe (sur Render), on l'utilise. Sinon, localhost.
+  host_url = ENV['BACKEND_URL'] || "localhost:3000"
+  
+  config.action_mailer.default_url_options = { host: host_url }
+  Rails.application.routes.default_url_options = { host: host_url }
+  # -------------------------------------
 
   config.active_support.deprecation = :log
   config.active_support.disallowed_deprecation = :raise
