@@ -48,8 +48,26 @@ export default function EditorCanvas({
 
       {/* ── Canvas centré ── */}
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", padding: 24 }}>
+        {/* canvasWrapRef enveloppe TOUT y compris le bouton × — mais le bouton est HORS de containerRef */}
         <div ref={canvasWrapRef}
           style={{ position: "relative", display: "inline-block", borderRadius: 4, boxShadow: "0 0 0 1px #2a2a3e, 0 32px 100px rgba(0,0,0,.9)" }}>
+
+          {/* ── Bouton × cadre — EN DEHORS de containerRef pour ne pas s'exporter ── */}
+          {layers.some(l => l.layer_type === "frame") && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDeleteFrame(); }}
+              style={{
+                position: "absolute", top: -12, right: -12, zIndex: 50,
+                background: "rgba(239,68,68,.9)", border: "2px solid #fff",
+                color: "#fff", borderRadius: "50%", width: 28, height: 28,
+                cursor: "pointer", fontSize: 16, fontWeight: 800,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                boxShadow: "0 2px 8px rgba(0,0,0,.5)"
+              }}>
+              ×
+            </button>
+          )}
+
           <div ref={containerRef}
             onClick={onClick}
             onMouseDown={onMouseDown}
@@ -102,14 +120,6 @@ export default function EditorCanvas({
                 </div>
               );
             })}
-
-            {/* ── Bouton × cadre ── */}
-            {layers.some(l => l.layer_type === "frame") && (
-              <button onClick={(e) => { e.stopPropagation(); onDeleteFrame(); }}
-                style={{ position: "absolute", top: 10, right: 10, zIndex: 30, background: "rgba(239,68,68,.9)", border: "none", color: "#fff", borderRadius: "50%", width: 28, height: 28, cursor: "pointer", fontSize: 16, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                ×
-              </button>
-            )}
 
             {/* ── Overlay recadrage photo ── */}
             {activeTool === "crop" && cropRect && !isVideo && (
