@@ -1,13 +1,25 @@
 # app/controllers/api/v1/exports_controller.rb
+#
+# Contrôleur qui gère les exports de médias (photos et vidéos).
+#
+# Routes :
+#   POST /api/v1/projects/:project_id/media_files/:media_file_id/exports
+#     → Lance un export et retourne un token de suivi
+#   GET  /api/v1/exports/:token
+#     → Retourne le statut de l'export (pending / processing / done / failed)
+#
 module Api
   module V1
     class ExportsController < ApplicationController
 
       # POST /api/v1/projects/:project_id/media_files/:media_file_id/exports
+      #
+      # Pour les PHOTOS → export synchrone (réponse immédiate avec l'URL)
+      # Pour les VIDÉOS  → export asynchrone via Solid Queue (polling nécessaire)
       def create
         media_file      = MediaFile.find(params[:media_file_id])
         layer_ids       = Array(params[:layer_ids])
-        layers_meta     = Array(params[:layers_meta])
+        layers_meta     = Array(params[:layers_meta])  # Métadonnées de style (couleur, taille police)
         frame_preset    = params[:frame_preset].present? ? params[:frame_preset].to_unsafe_h : nil
         frame_color     = params[:frame_color]
         frame_thickness = params[:frame_thickness]&.to_i
@@ -18,9 +30,12 @@ module Api
         media_type = media_file.media_type.to_s.downcase
 
         if media_type.include?("image") || media_type.include?("photo")
-          # ── Export photo SYNCHRONE ──────────────────────────────────────
+          # ── Export PHOTO : traitement synchrone ─────────────────────────
+          # On traite directement ici (pas de job) car les photos sont rapides
           layers = Layer.where(id: layer_ids).includes(:annotations).to_a
 
+          # Injecter les métadonnées de style (couleur, taille) sur les layers en mémoire
+          # sans modifier la base de données
           Array(layers_meta).each do |meta|
             id    = (meta[:id] || meta["id"]).to_i
             layer = layers.find { |l| l.id == id }
@@ -41,6 +56,7 @@ module Api
           ext          = File.extname(output_path).delete(".").downcase
           content_type = ext == "png" ? "image/png" : "image/jpeg"
 
+          # Attache le fichier exporté à Active Storage
           export = VideoExport.create!(media_file: media_file, status: "done")
           export.file.attach(
             io:           File.open(output_path),
@@ -50,6 +66,7 @@ module Api
 
           File.delete(output_path) if File.exist?(output_path)
 
+          # Réponse immédiate avec l'URL — le front peut télécharger directement
           render json: {
             token:     export.token,
             status:    "done",
@@ -57,7 +74,10 @@ module Api
           }, status: :created
 
         else
-          # ── Export vidéo ASYNCHRONE ─────────────────────────────────────
+          # ── Export VIDÉO : traitement asynchrone ────────────────────────
+          # La vidéo peut prendre plusieurs secondes/minutes selon sa durée.
+          # On crée l'export, lance le job, et le front poll /exports/:token
+          # toutes les 2 secondes pour connaître l'avancement.
           export = VideoExport.create!(media_file: media_file, status: "pending")
 
           VideoExportJob.perform_later(
@@ -75,20 +95,24 @@ module Api
         end
 
       rescue => e
+        # En cas d'erreur, on logue et on renvoie un JSON lisible au lieu d'un 500 muet
         Rails.logger.error("[ExportsController] #{e.message}\n#{e.backtrace.first(5).join("\n")}")
         render json: { error: e.message }, status: :unprocessable_entity
       end
 
       # GET /api/v1/exports/:token
+      #
+      # Endpoint de polling — le front appelle cette route toutes les 2 secondes
+      # jusqu'à ce que status soit "done" ou "failed"
       def show
-  @export = VideoExport.find_by!(token: params[:token])
-  render json: {
-    id:        @export.id,
-    status:    @export.status,
-    video_url: @export.status == "done" && @export.file.attached? ? url_for(@export.file) : nil,
-    error:     @export.error
-  }
-end
+        @export = VideoExport.find_by!(token: params[:token])
+        render json: {
+          id:        @export.id,
+          status:    @export.status,
+          video_url: @export.status == "done" && @export.file.attached? ? url_for(@export.file) : nil,
+          error:     @export.error
+        }
+      end
     end
   end
 end

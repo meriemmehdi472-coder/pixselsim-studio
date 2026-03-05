@@ -1,22 +1,45 @@
 // hooks/useEditorState.js
+//
+// Hook central de l'éditeur — gère TOUT l'état de l'application :
+//   - Historique undo/redo des calques
+//   - Versions du média (recadrage vidéo)
+//   - Outils actifs (crop, texte, emoji, cadre)
+//   - Export photo (synchrone) et vidéo (asynchrone avec polling)
+//   - Drag & drop des calques sur le canvas
+//   - Recadrage photo (canvas) et vidéo (ffmpeg)
+//
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useApi } from "./useApi";
 
 const API = (import.meta.env.VITE_API_URL || "http://localhost:3000") + "/api/v1";
 
+// ── Gestion de l'historique undo/redo ─────────────────────────────────────
+// Stocke un tableau d'états et un index courant.
+// push() ajoute un état, undo/redo déplacent l'index.
 function useHistory(initial) {
   const [index, setIndex]     = useState(0);
   const [history, setHistory] = useState([initial]);
   const histRef = useRef([initial]);
   const idxRef  = useRef(0);
+
   const push = useCallback((s) => {
+    // Écrase les états "futurs" quand on fait une nouvelle action après un undo
     const next = [...histRef.current.slice(0, idxRef.current + 1), s];
     histRef.current = next; idxRef.current = next.length - 1;
     setHistory([...next]); setIndex(next.length - 1);
   }, []);
-  const undo = useCallback(() => { const i = Math.max(0, idxRef.current - 1); idxRef.current = i; setIndex(i); }, []);
-  const redo = useCallback(() => { const i = Math.min(histRef.current.length - 1, idxRef.current + 1); idxRef.current = i; setIndex(i); }, []);
+
+  const undo = useCallback(() => {
+    const i = Math.max(0, idxRef.current - 1);
+    idxRef.current = i; setIndex(i);
+  }, []);
+
+  const redo = useCallback(() => {
+    const i = Math.min(histRef.current.length - 1, idxRef.current + 1);
+    idxRef.current = i; setIndex(i);
+  }, []);
+
   return { current: history[index], push, undo, redo, canUndo: index > 0, canRedo: index < history.length - 1 };
 }
 
@@ -25,9 +48,10 @@ export function useEditorState(initialMediaFile) {
   const navigate      = useNavigate();
   const { request }   = useApi();
 
+  // ── Versions du média (recadrage vidéo crée une nouvelle version) ────────
   const [mediaVersions, setMediaVersions]     = useState([initialMediaFile]);
   const [mediaVersionIdx, setMediaVersionIdx] = useState(0);
-  const mediaVersionsRef  = useRef([initialMediaFile]);
+  const mediaVersionsRef   = useRef([initialMediaFile]);
   const mediaVersionIdxRef = useRef(0);
 
   const currentMediaFile = mediaVersions[mediaVersionIdx];
@@ -38,37 +62,45 @@ export function useEditorState(initialMediaFile) {
   const undoMediaVersion = useCallback(() => setMediaVersionIdx(i => Math.max(0, i - 1)), []);
   const redoMediaVersion = useCallback(() => setMediaVersionIdx(i => Math.min(mediaVersionsRef.current.length - 1, i + 1)), []);
 
+  // ── Historique des calques (texte, emoji, cadre) ─────────────────────────
   const { current: layers, push: pushLayers, undo, redo, canUndo, canRedo } = useHistory([]);
 
-  const [activeTool, setActiveTool]             = useState(null);
+  // ── États UI ─────────────────────────────────────────────────────────────
+  const [activeTool, setActiveTool]             = useState(null);          // "crop" | "text" | "emoji" | "frame" | null
   const [textInput, setTextInput]               = useState("");
   const [selectedEmoji, setSelectedEmoji]       = useState("😂");
-  const [toast, setToast]                       = useState(null);
+  const [toast, setToast]                       = useState(null);          // Message de notification temporaire
   const [showFramePicker, setShowFramePicker]   = useState(false);
-  const [editingLayer, setEditingLayer]         = useState(null);
-  const [selectedFrameId, setSelectedFrameId]   = useState(null); // id du cadre sélectionné
-  const [dragging, setDragging]                 = useState(null);
+  const [editingLayer, setEditingLayer]         = useState(null);          // Calque texte en cours d'édition
+  const [selectedFrameId, setSelectedFrameId]   = useState(null);         // Cadre sélectionné pour les poignées
+  const [dragging, setDragging]                 = useState(null);          // ID du calque en cours de drag
   const [dragOffset, setDragOffset]             = useState({ x: 0, y: 0 });
-  const [livePos, setLivePos]                   = useState({});
+  const [livePos, setLivePos]                   = useState({});            // Position live pendant le drag
   const [imgSrc, setImgSrc]                     = useState(currentMediaFile?.url || null);
-  const [cropHistory, setCropHistory]           = useState([]);
-  const [cropRect, setCropRect]                 = useState(null);
-  const [cropStart, setCropStart]               = useState(null);
+
+  // ── États recadrage ──────────────────────────────────────────────────────
+  const [cropHistory, setCropHistory]           = useState([]);            // Historique des recadrages photo
+  const [cropRect, setCropRect]                 = useState(null);          // Rectangle de sélection en cours
+  const [cropStart, setCropStart]               = useState(null);          // Point de départ du drag crop
   const [showVideoCrop, setShowVideoCrop]       = useState(false);
   const [pendingCrop, setPendingCrop]           = useState(null);
   const [pendingCropPreviewUrl, setPendingCropPreviewUrl] = useState(null);
   const [videoCropLoading, setVideoCropLoading] = useState(false);
-  const [videoExportToken, setVideoExportToken] = useState(null);
-  const [videoExportStatus, setVideoExportStatus] = useState(null);
-  const [videoDownloadUrl, setVideoDownloadUrl] = useState(null);
-  const [exporting, setExporting]               = useState(false);
-  const [exportFmt, setExportFmt]               = useState("png");
 
-  const containerRef  = useRef(null);
-  const canvasWrapRef = useRef(null);
-  const imgRef        = useRef(null);
-  const pollRef       = useRef(null);
+  // ── États export ─────────────────────────────────────────────────────────
+  const [videoExportToken, setVideoExportToken]   = useState(null);        // Token de polling
+  const [videoExportStatus, setVideoExportStatus] = useState(null);        // "pending" | "processing" | "done" | "failed"
+  const [videoDownloadUrl, setVideoDownloadUrl]   = useState(null);        // URL finale de la vidéo exportée
+  const [exporting, setExporting]                 = useState(false);
+  const [exportFmt, setExportFmt]                 = useState("png");       // Format photo : "png" | "jpeg"
 
+  // ── Refs DOM ─────────────────────────────────────────────────────────────
+  const containerRef  = useRef(null);  // Div contenant le média
+  const canvasWrapRef = useRef(null);  // Wrapper externe (pour le bouton ×)
+  const imgRef        = useRef(null);  // Élément <img> ou <video>
+  const pollRef       = useRef(null);  // Référence au setInterval de polling
+
+  // Ref pour accéder à l'état courant dans les callbacks sans recréer les fonctions
   const stateRef = useRef({});
   stateRef.current = {
     activeTool, textInput, selectedEmoji,
@@ -77,22 +109,25 @@ export function useEditorState(initialMediaFile) {
     currentMediaFile, mediaVersionIdx,
   };
 
+  // Affiche un toast (notification) pendant 4 secondes
   const showToast = useCallback((msg) => {
     setToast(msg); setTimeout(() => setToast(null), 4000);
   }, []);
 
-  // ── Keyboard shortcuts ────────────────────────────────────────────────
+  // ── Raccourcis clavier ───────────────────────────────────────────────────
   useEffect(() => {
     const h = (e) => {
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === "z") { e.preventDefault(); undo(); }
       if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.shiftKey && e.key === "z"))) { e.preventDefault(); redo(); }
-      if (e.key === "Escape") setSelectedFrameId(null);
+      if (e.key === "Escape") setSelectedFrameId(null);  // Désélectionne le cadre
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, [undo, redo]);
 
-  // ── Poll export vidéo → remplace la vidéo quand done ─────────────────
+  // ── Polling export vidéo ─────────────────────────────────────────────────
+  // Interroge le backend toutes les 2 secondes pour savoir si l'export est terminé.
+  // Quand "done", télécharge automatiquement la vidéo et ajoute une nouvelle version.
   useEffect(() => {
     if (!videoExportToken || videoExportStatus === "done" || videoExportStatus === "failed") return;
     pollRef.current = setInterval(async () => {
@@ -104,6 +139,7 @@ export function useEditorState(initialMediaFile) {
           const url = data.video_url;
           setVideoDownloadUrl(url);
           if (url) {
+            // Ajoute la vidéo exportée comme nouvelle version navigable
             const exportedMf = {
               ...stateRef.current.currentMediaFile,
               id: `exported_${Date.now()}`,
@@ -130,7 +166,10 @@ export function useEditorState(initialMediaFile) {
     return () => clearInterval(pollRef.current);
   }, [videoExportToken, videoExportStatus, showToast]);
 
-  // ── Calques ───────────────────────────────────────────────────────────
+  // ── Gestion des calques ──────────────────────────────────────────────────
+
+  // Crée un calque côté API puis l'ajoute à l'historique local
+  // En cas d'erreur API, crée un calque local temporaire (mode offline)
   const addLayer = useCallback(async (type, posX = 100, posY = 100, content = "", annoType = "text", extra = {}) => {
     const mf = stateRef.current.currentMediaFile;
     let nl;
@@ -146,12 +185,14 @@ export function useEditorState(initialMediaFile) {
         nl.annotations = [a];
       }
     } catch {
+      // Fallback local si l'API est indisponible
       nl = { id: Date.now(), layer_type: type, position_x: posX, position_y: posY, annotations: content ? [{ content, annotation_type: annoType }] : [], ...extra };
     }
     pushLayers([...stateRef.current.layers, nl]);
     showToast(`Calque "${type}" ajouté`);
   }, [projectId, request, pushLayers, showToast]);
 
+  // Sauvegarde les modifications d'un calque texte (contenu, couleur, taille)
   const handleSaveLayerEdit = useCallback((id, text, color, size) => {
     pushLayers(stateRef.current.layers.map(l => l.id !== id ? l : {
       ...l, textColor: color, fontSize: size, annotations: [{ ...(l.annotations[0] || {}), content: text }]
@@ -159,6 +200,7 @@ export function useEditorState(initialMediaFile) {
     showToast("Texte modifié ✓");
   }, [pushLayers, showToast]);
 
+  // Supprime un calque de l'historique
   const deleteLayer = useCallback((id) => {
     pushLayers(stateRef.current.layers.filter(l => l.id !== id));
     setEditingLayer(null);
@@ -166,6 +208,7 @@ export function useEditorState(initialMediaFile) {
     showToast("Calque supprimé");
   }, [pushLayers, showToast, selectedFrameId]);
 
+  // Ajoute un cadre depuis le FramePicker avec ses propriétés visuelles
   const handleAddFrame = useCallback(({ preset, wrapperStyle, mediaStyle, frameColor, frameThickness }) => {
     const newFrame = {
       id: Date.now(), layer_type: "frame", position_x: 0, position_y: 0,
@@ -179,17 +222,16 @@ export function useEditorState(initialMediaFile) {
     showToast(`Cadre "${preset.label}" — glisse les poignées pour ajuster`);
   }, [pushLayers, showToast]);
 
-  // ── Mise à jour d'un cadre (poignées ou panneau) ───────────────────────
-  // Utilise setHistory directement (sans pousser dans l'historique undo)
-  // pour que les sliders soient fluides. Un seul push à la fin si besoin.
+  // Met à jour les propriétés d'un cadre existant (scale, offset, couleur, épaisseur)
+  // Chaque changement est enregistré dans l'historique pour permettre l'undo
   const handleUpdateFrame = useCallback((id, patch) => {
-    // Met à jour le layer directement dans l'état courant (pas d'historique intermédiaire)
     const updated = stateRef.current.layers.map(l => l.id !== id ? l : { ...l, ...patch });
-    // pushLayers pour que le changement soit visible ET annulable
     pushLayers(updated);
   }, [pushLayers]);
 
-  // ── Insert texte/emoji ─────────────────────────────────────────────────
+  // ── Insertion de calques depuis la sidebar ────────────────────────────────
+
+  // Insère un texte au centre du canvas
   const handleInsertText = useCallback(() => {
     const txt = stateRef.current.textInput.trim();
     if (!txt) { showToast("Écris d'abord un texte"); return; }
@@ -198,6 +240,7 @@ export function useEditorState(initialMediaFile) {
     setTextInput(""); setActiveTool(null);
   }, [addLayer, showToast]);
 
+  // Insère un emoji au centre du canvas
   const handleInsertEmoji = useCallback(() => {
     const emoji = stateRef.current.selectedEmoji;
     const cont  = containerRef.current;
@@ -205,12 +248,15 @@ export function useEditorState(initialMediaFile) {
     setActiveTool(null);
   }, [addLayer]);
 
-  // ── Crop photo ────────────────────────────────────────────────────────
+  // ── Recadrage photo (canvas natif) ───────────────────────────────────────
+  // Recadre l'image côté client en utilisant un <canvas> HTML
+  // Le résultat est une dataURL stockée dans imgSrc (pas de requête serveur)
   const performPhotoCrop = useCallback((rect) => {
     const img = imgRef.current;
     if (!img || !rect || rect.w < 5 || rect.h < 5) return;
     const cont = containerRef.current.getBoundingClientRect();
     const ir   = img.getBoundingClientRect();
+    // Convertir les coordonnées d'affichage en coordonnées natives de l'image
     const sx = Math.max(0, (rect.x - (ir.left - cont.left)) * (img.naturalWidth  / ir.width));
     const sy = Math.max(0, (rect.y - (ir.top  - cont.top))  * (img.naturalHeight / ir.height));
     const sw = Math.min(rect.w * (img.naturalWidth  / ir.width),  img.naturalWidth  - sx);
@@ -220,11 +266,12 @@ export function useEditorState(initialMediaFile) {
     c.width = sw; c.height = sh;
     c.getContext("2d").drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
     const dataUrl = c.toDataURL("image/png");
-    setCropHistory(prev => [...prev, stateRef.current.imgSrc]);
+    setCropHistory(prev => [...prev, stateRef.current.imgSrc]);  // Sauvegarde pour undo
     setImgSrc(dataUrl);
     showToast(`✂️ ${Math.round(sw)}×${Math.round(sh)}px recadré`);
   }, [showToast]);
 
+  // Annule le dernier recadrage photo en restaurant l'image précédente
   const undoPhotoCrop = useCallback(() => {
     if (!cropHistory.length) return;
     setImgSrc(cropHistory[cropHistory.length - 1]);
@@ -232,7 +279,8 @@ export function useEditorState(initialMediaFile) {
     showToast("Recadrage annulé");
   }, [cropHistory, showToast]);
 
-  // ── Crop vidéo → nouveau MediaFile ────────────────────────────────────
+  // ── Recadrage vidéo (ffmpeg côté serveur) ────────────────────────────────
+  // Envoie les coordonnées de crop au backend qui crée une nouvelle version de la vidéo
   const handleVideoCropConfirm = useCallback(async (cropData) => {
     setShowVideoCrop(false); setVideoCropLoading(true);
     showToast("⏳ Recadrage en cours (ffmpeg)...");
@@ -243,6 +291,7 @@ export function useEditorState(initialMediaFile) {
         method: "POST",
         body: JSON.stringify({ crop: { x: cropData.x, y: cropData.y, w: cropData.w, h: cropData.h, video_w: cropData.video_w, video_h: cropData.video_h } }),
       });
+      // Ajoute la nouvelle version recadrée à l'historique des médias
       setMediaVersions(prev => {
         const next = [...prev.slice(0, idx + 1), newMf];
         mediaVersionsRef.current = next;
@@ -255,13 +304,15 @@ export function useEditorState(initialMediaFile) {
     finally { setVideoCropLoading(false); }
   }, [projectId, request, showToast]);
 
-  const cancelVideoCrop = useCallback(() => { setPendingCrop(null); setPendingCropPreviewUrl(null); showToast("Zone annulée"); }, [showToast]);
+  const cancelVideoCrop = useCallback(() => {
+    setPendingCrop(null); setPendingCropPreviewUrl(null); showToast("Zone annulée");
+  }, [showToast]);
 
-  // ── Téléchargement / Partage ──────────────────────────────────────────
-  // Desktop → <a download>, Mobile → navigator.share si dispo
+  // ── Téléchargement ───────────────────────────────────────────────────────
+  // Fetche le fichier en blob pour forcer le téléchargement local
+  // au lieu d'ouvrir dans un nouvel onglet (problème cross-origin)
   const handleDownload = useCallback(async (url, filename) => {
     try {
-      // Fetch en blob pour forcer le téléchargement (évite l'ouverture dans un nouvel onglet)
       const res     = await fetch(url);
       const blob    = await res.blob();
       const blobUrl = URL.createObjectURL(blob);
@@ -271,31 +322,36 @@ export function useEditorState(initialMediaFile) {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);  // Libère la mémoire
       showToast("✓ Téléchargement lancé !");
     } catch {
-      // Fallback si fetch bloqué
+      // Fallback si le fetch est bloqué (CORS, réseau, etc.)
       window.open(url, "_blank");
       showToast("✓ Fichier ouvert dans un nouvel onglet");
     }
-
-    // Partage natif mobile en parallèle (optionnel, non bloquant)
+    // Partage natif sur mobile (optionnel, non bloquant)
     const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
     if (isMobile && navigator.share && navigator.canShare?.({ url })) {
       navigator.share({ url, title: filename }).catch(() => {});
     }
   }, [showToast]);
 
-  // ── Export photo ImageMagick ──────────────────────────────────────────
+  // ── Export photo ─────────────────────────────────────────────────────────
+  // Lance un export synchrone : le backend répond directement avec l'URL de l'image
   const handleExportImage = useCallback(async () => {
     setExporting(true);
     const { layers: ls } = stateRef.current;
     const mf = stateRef.current.currentMediaFile;
+
+    // Ne transmet que les calques persistés en BDD (pas les calques locaux temporaires)
     const layerIds   = ls.filter(l => typeof l.id === "number" && l.id < 1e12).map(l => l.id);
     const layersMeta = ls.filter(l => typeof l.id === "number" && l.id < 1e12 && l.layer_type === "text")
       .map(l => ({ id: l.id, text_color: l.textColor || "#ffffff", font_size: l.fontSize || 28 }));
+
     const frameLayer = ls.find(l => l.layer_type === "frame");
     const body = { layer_ids: layerIds, layers_meta: layersMeta };
+
+    // Transmet les propriétés du cadre si un cadre est appliqué
     if (frameLayer?.framePreset) {
       body.frame_preset    = frameLayer.framePreset;
       body.frame_color     = frameLayer.frameColor || null;
@@ -309,6 +365,7 @@ export function useEditorState(initialMediaFile) {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
       });
       const data = await res.json();
+      // Le backend répond directement avec image_url pour les photos
       if (data.image_url) {
         await handleDownload(data.image_url, `export-${Date.now()}.png`);
       } else { showToast("Erreur export image"); }
@@ -316,7 +373,9 @@ export function useEditorState(initialMediaFile) {
     finally { setExporting(false); }
   }, [projectId, showToast, handleDownload]);
 
-  // ── Export vidéo ffmpeg ───────────────────────────────────────────────
+  // ── Export vidéo ─────────────────────────────────────────────────────────
+  // Lance un export asynchrone : le backend répond avec un token,
+  // le polling prend le relais (voir useEffect plus haut)
   const handleExportVideo = useCallback(async () => {
     setExporting(true); setVideoExportStatus("pending"); setVideoDownloadUrl(null);
     const { layers: ls } = stateRef.current;
@@ -334,30 +393,32 @@ export function useEditorState(initialMediaFile) {
       body.frame_color     = frameLayer.frameColor || null;
       body.frame_thickness = frameLayer.frameThickness || null;
     }
+    // Si c'est une vidéo déjà exportée, on repart de l'original pour éviter la dégradation
     const mediaId = mf._isExport ? initialMediaFile.id : mf.id;
     try {
       const res  = await fetch(`${API}/projects/${projectId}/media_files/${mediaId}/exports`, {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
       });
       const data = await res.json();
-      setVideoExportToken(data.token);
+      setVideoExportToken(data.token);  // Démarre le polling
       showToast("⏳ ffmpeg en cours...");
     } catch { showToast("Erreur export"); setVideoExportStatus(null); }
     setExporting(false);
   }, [projectId, initialMediaFile, showToast]);
 
-  // ── Télécharger la vidéo exportée ─────────────────────────────────────
+  // Télécharge manuellement la vidéo déjà exportée (si le téléchargement auto a échoué)
   const handleDownloadVideo = useCallback(async () => {
     if (!videoDownloadUrl) return;
     await handleDownload(videoDownloadUrl, "export-final.mp4");
   }, [videoDownloadUrl, handleDownload]);
 
-  // ── Événements canvas ─────────────────────────────────────────────────
+  // ── Événements canvas ────────────────────────────────────────────────────
+
+  // Clic sur le canvas : place un calque texte/emoji à la position cliquée
   const handleCanvasClick = useCallback((e) => {
     const { activeTool: tool, dragging: drag, textInput: txt, selectedEmoji: emoji } = stateRef.current;
     if (drag) return;
-    // Clic sur zone vide = désélectionne le cadre
-    setSelectedFrameId(null);
+    setSelectedFrameId(null);  // Désélectionne le cadre
     if (!tool || tool === "crop" || tool === "frame") return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left, y = e.clientY - rect.top;
@@ -367,12 +428,14 @@ export function useEditorState(initialMediaFile) {
     } else if (tool === "emoji") { addLayer("emoji", x, y, emoji, "emoji"); setActiveTool(null); }
   }, [addLayer, showToast]);
 
+  // Sélection d'outil dans la sidebar
   const handleToolSelect = useCallback((tool) => {
-    if (tool === "crop" && isVideo) { setShowVideoCrop(true); return; }
-    setActiveTool(prev => prev === tool ? null : tool);
+    if (tool === "crop" && isVideo) { setShowVideoCrop(true); return; }  // Crop vidéo → modal
+    setActiveTool(prev => prev === tool ? null : tool);  // Toggle
     setShowFramePicker(prev => tool === "frame" ? !prev : false);
   }, [isVideo]);
 
+  // Début du drag d'un calque
   const handleLayerMouseDown = useCallback((e, layer) => {
     e.stopPropagation();
     const rect = containerRef.current.getBoundingClientRect();
@@ -381,6 +444,7 @@ export function useEditorState(initialMediaFile) {
     setDragOffset({ x: e.clientX - rect.left - layer.position_x, y: e.clientY - rect.top - layer.position_y });
   }, []);
 
+  // Mouvement de la souris : déplace le calque ou dessine le rectangle de crop
   const handleMouseMove = useCallback((e) => {
     const { dragging: drag, dragOffset: off, cropStart: cs, activeTool: tool } = stateRef.current;
     if (drag) {
@@ -394,6 +458,7 @@ export function useEditorState(initialMediaFile) {
     }
   }, [isVideo]);
 
+  // Relâchement de la souris : valide le déplacement ou déclenche le crop
   const handleMouseUp = useCallback(() => {
     const { dragging: drag, livePos: lp, layers: ls, cropRect: cr, activeTool: tool } = stateRef.current;
     if (drag && lp[drag]) {
@@ -407,6 +472,7 @@ export function useEditorState(initialMediaFile) {
     }
   }, [pushLayers, isVideo, performPhotoCrop]);
 
+  // Début du dessin du rectangle de crop photo
   const handleCropMouseDown = useCallback((e) => {
     if (stateRef.current.activeTool !== "crop" || isVideo) return;
     const rect = containerRef.current.getBoundingClientRect();
@@ -414,6 +480,7 @@ export function useEditorState(initialMediaFile) {
     setCropRect(null);
   }, [isVideo]);
 
+  // ── Retour de tous les états et handlers au composant parent ─────────────
   return {
     navigate, projectId,
     currentMediaFile, isVideo,
