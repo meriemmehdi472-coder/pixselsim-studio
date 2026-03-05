@@ -47,14 +47,16 @@ module Api
 
       # GET /api/v1/exports/:token
       def show
-        export = VideoExport.find_by!(token: params[:token])
-        render json: {
-          token:        export.token,
-          status:       export.status,
-          download_url: export.download_url,
-          error:        export.error
-        }
-      end
+  @export = VideoExport.find_by!(token: params[:id])
+  
+  render json: {
+    id: @export.id,
+    status: @export.status,
+    # On génère l'URL uniquement si le fichier est prêt
+    video_url: @export.status == "done" && @export.file.attached? ? url_for(@export.file) : nil,
+    error: @export.error
+  }
+end
     end
   end
 end

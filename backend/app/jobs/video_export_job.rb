@@ -25,6 +25,10 @@ class VideoExportJob < ApplicationJob
       content_type: "video/mp4"
     )
     export.update!(status: "done")
+    ActionCable.server.broadcast("export_channel_#{export.token}", {
+      status: "done",
+      video_url: Rails.application.routes.url_helpers.url_for(export.file)
+    })  #notifier le front 
     File.delete(output_path) if File.exist?(output_path)
 
   rescue => e
