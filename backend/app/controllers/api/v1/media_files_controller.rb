@@ -1,7 +1,8 @@
-# app/controllers/api/v1/media_files_controller.rb
 module Api
   module V1
     class MediaFilesController < ApplicationController
+      skip_before_action :verify_authenticity_token, raise: false
+
       before_action :set_project
       before_action :set_media_file, only: [:show, :destroy, :crop, :ancestors]
 
@@ -26,7 +27,7 @@ module Api
         if @media_file.save
           render json: serialize_media_file(@media_file), status: :created
         else
-          render json: @media_file.errors, status: :unprocessable_entity
+          render json: { errors: @media_file.errors.full_messages }, status: :unprocessable_entity
         end
       end
 
@@ -35,47 +36,41 @@ module Api
         render json: { message: "Fichier supprimé" }
       end
 
-      # ── GET /api/v1/projects/:project_id/media_files/:id/ancestors
-      # Retourne la chaîne de versions parentes (du plus récent au plus ancien)
       def ancestors
-        chain = @media_file.ancestors.map { |mf| serialize_media_file(mf) }
-        render json: chain
+        render json: @media_file.ancestors.map { |mf| serialize_media_file(mf) }
       end
 
-      # ── POST /api/v1/projects/:project_id/media_files/:id/crop
-      #
-      # Body JSON :
-      #   { crop: { x:, y:, w:, h:, video_w:, video_h: } }
-      #
-      # 1. Lance ffmpeg pour recadrer la vidéo
-      # 2. Crée un nouveau MediaFile enfant avec le résultat
-      # 3. Retourne le nouveau MediaFile (avec son URL)
       def crop
         crop_params = params.require(:crop).permit(:x, :y, :w, :h, :video_w, :video_h).to_h
-
         output_path = VideoCropService.new(@media_file, crop_params).call
 
-        # Créer un nouveau MediaFile enfant dans le même projet
-        child = @project.media_files.new(
-          media_type: "video",
-          file_path:  "cropped_#{@media_file.file_path}",
-          parent_id:  @media_file.id,
-          crop_params: crop_params.to_json
-        )
-        child.file.attach(
-          io:           File.open(output_path),
-          filename:     "crop_#{Time.now.to_i}.mp4",
-          content_type: "video/mp4"
-        )
-        child.save!
+        if output_path && File.exist?(output_path)
+          child = @project.media_files.new(
+            media_type: "video",
+            file_path:  "cropped_#{@media_file.file_path}",
+            parent_id:  @media_file.id,
+            crop_params: crop_params.to_json
+          )
+          
+          child.file.attach(
+            io:           File.open(output_path),
+            filename:     "crop_#{Time.now.to_i}.mp4",
+            content_type: "video/mp4"
+          )
 
-        render json: serialize_media_file(child), status: :created
+          if child.save
+            render json: serialize_media_file(child), status: :created
+          else
+            render json: { error: "Erreur sauvegarde" }, status: :unprocessable_entity
+          end
+        else
+          render json: { error: "Erreur FFmpeg" }, status: :internal_server_error
+        end
 
       rescue => e
-        Rails.logger.error("[crop] #{e.message}\n#{e.backtrace.first(5).join("\n")}")
         render json: { error: e.message }, status: :unprocessable_entity
       ensure
-        File.delete(output_path) if output_path && File.exist?(output_path.to_s)
+        File.delete(output_path) if output_path && File.exist?(output_path)
       end
 
       private
