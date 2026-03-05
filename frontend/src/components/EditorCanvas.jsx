@@ -17,7 +17,6 @@ export default function EditorCanvas({
   // refs
   canvasWrapRef, containerRef, imgRef,
 }) {
-  // Chercher le dernier cadre actif → applique masque sur le média
   const activeFrame = [...layers].reverse().find(l => l.layer_type === "frame");
   const ws = activeFrame?.wrapperStyle || {};
   const ms = activeFrame?.mediaStyle   || {};
@@ -25,6 +24,26 @@ export default function EditorCanvas({
   const maxW = "calc(100vw - 280px)";
   const maxH = "calc(100vh - 120px)";
   const mediaStyle = { display: "block", maxWidth: maxW, maxHeight: maxH, width: "auto", height: "auto", ...ms };
+
+  // ── Aperçu CSS du recadrage vidéo ───────────────────────────────────────
+  const buildVideoCropStyle = (crop) => {
+    if (!crop || !crop.video_w || !crop.video_h) return {};
+    const { x, y, w, h, video_w, video_h } = crop;
+
+    const x1 = (x / video_w * 100).toFixed(2);
+    const y1 = (y / video_h * 100).toFixed(2);
+    const x2 = ((x + w) / video_w * 100).toFixed(2);
+    const y2 = ((y + h) / video_h * 100).toFixed(2);
+    const scaleX = video_w / w;
+    const scaleY = video_h / h;
+    const scale  = Math.min(scaleX, scaleY);
+
+    return {
+      clipPath: `inset(${y1}% ${(100 - parseFloat(x2)).toFixed(2)}% ${(100 - parseFloat(y2)).toFixed(2)}% ${x1}%)`,
+      transform: `scale(${scale})`,
+      transformOrigin: `${x1}% ${y1}%`,
+    };
+  };
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
@@ -37,7 +56,12 @@ export default function EditorCanvas({
             {activeTool}
           </span>
         )}
-        {isVideo && !activeTool && (
+        {isVideo && pendingCrop && !activeTool && (
+          <span style={{ fontSize: 11, color: "#22c55e", background: "#22c55e22", padding: "2px 8px", borderRadius: 4, fontFamily: FONT }}>
+            ✓ Aperçu zone recadrée
+          </span>
+        )}
+        {isVideo && !activeTool && !pendingCrop && (
           <span style={{ fontSize: 11, color: "#f59e0b66" }}>Met en pause pour ajouter texte/emoji</span>
         )}
         <div style={{ marginLeft: "auto", display: "flex", gap: 8, paddingRight: 16, fontSize: 10, color: "#2a2a3e" }}>
@@ -48,11 +72,10 @@ export default function EditorCanvas({
 
       {/* ── Canvas centré ── */}
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", padding: 24 }}>
-        {/* canvasWrapRef enveloppe TOUT y compris le bouton × — mais le bouton est HORS de containerRef */}
         <div ref={canvasWrapRef}
           style={{ position: "relative", display: "inline-block", borderRadius: 4, boxShadow: "0 0 0 1px #2a2a3e, 0 32px 100px rgba(0,0,0,.9)" }}>
 
-          {/* ── Bouton × cadre — EN DEHORS de containerRef pour ne pas s'exporter ── */}
+          {/* ── Bouton × cadre — EN DEHORS de containerRef ── */}
           {layers.some(l => l.layer_type === "frame") && (
             <button
               onClick={(e) => { e.stopPropagation(); onDeleteFrame(); }}
@@ -75,27 +98,24 @@ export default function EditorCanvas({
             onMouseUp={onMouseUp}
             style={{ position: "relative", display: "inline-block", lineHeight: 0, userSelect: "none", cursor: activeTool === "crop" && !isVideo ? "crosshair" : (activeTool && activeTool !== "frame") ? "copy" : "default" }}>
 
-            {/* ── Média (avec masque de forme) ── */}
-            {isVideo && pendingCrop && pendingCropPreviewUrl ? (
-              // Vidéo avec zone sélectionnée → affiche SEULEMENT la zone
-              <div style={{ position: "relative", display: "inline-block" }}>
-                <div style={{ display: "inline-block", overflow: "hidden", lineHeight: 0, ...ws }}>
-                  <img src={pendingCropPreviewUrl} alt="aperçu recadrage" style={{ ...mediaStyle, objectFit: "contain" }} />
-                </div>
-                <div style={{ position: "absolute", top: 8, left: 8, background: "rgba(245,158,11,.9)", color: "#000", fontSize: 10, fontWeight: 800, padding: "3px 8px", borderRadius: 4, fontFamily: FONT }}>
-                  APERÇU — vidéo finale via Exporter MP4
-                </div>
-              </div>
-            ) : (
-              <div style={{ display: "inline-block", overflow: "hidden", lineHeight: 0, ...ws }}>
-                {isVideo
-                  ? <video ref={imgRef} src={mediaFile?.url} controls style={mediaStyle} />
-                  : imgSrc
-                    ? <img ref={imgRef} src={imgSrc} alt="" draggable={false} crossOrigin="anonymous" style={{ ...mediaStyle, objectFit: "contain" }} />
-                    : <div style={{ width: 800, height: 500, background: "#131320", display: "flex", alignItems: "center", justifyContent: "center", color: "#1e1e2e", fontSize: 64 }}>🖼️</div>
-                }
-              </div>
-            )}
+            {/* ── Média ── */}
+            <div style={{ display: "inline-block", overflow: "hidden", lineHeight: 0, ...ws }}>
+              {isVideo ? (
+                <video
+                  ref={imgRef}
+                  src={mediaFile?.url}
+                  controls
+                  style={pendingCrop
+                    ? { ...mediaStyle, ...buildVideoCropStyle(pendingCrop) }
+                    : mediaStyle
+                  }
+                />
+              ) : imgSrc ? (
+                <img ref={imgRef} src={imgSrc} alt="" draggable={false} crossOrigin="anonymous" style={{ ...mediaStyle, objectFit: "contain" }} />
+              ) : (
+                <div style={{ width: 800, height: 500, background: "#131320", display: "flex", alignItems: "center", justifyContent: "center", color: "#1e1e2e", fontSize: 64 }}>🖼️</div>
+              )}
+            </div>
 
             {/* ── Calques texte / emoji ── */}
             {layers.filter(l => l.layer_type !== "frame").map(layer => {
