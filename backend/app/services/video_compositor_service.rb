@@ -103,8 +103,8 @@ class VideoCompositorService
       "-c:v libx264",
       "-profile:v baseline",   # compatibilité max iOS/Android
       "-level 3.1",
-      "-preset fast",
-      "-crf 22",
+      "-preset ultrafast",
+      "-crf 28",
       "-pix_fmt yuv420p",       # obligatoire pour iOS
       "-c:a aac",
       "-b:a 128k",
