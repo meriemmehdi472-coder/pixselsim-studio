@@ -6,3 +6,4 @@ class ApplicationController < ActionController::API
   def not_found
     render json: { error: 'Ressource introuvable' }, status: :not_found
   end
+end
