@@ -1,6 +1,6 @@
 Rails.application.config.middleware.insert_before 0, Rack::Cors do
   allow do
-    origins "https://pixelsim-studio-front.onrender.com",
+    origins "https://pixselsim-studio-front.onrender.com",
             "http://localhost:5173",
             "http://localhost:3000"
 
