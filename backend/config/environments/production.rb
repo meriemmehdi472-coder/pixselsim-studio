@@ -63,11 +63,8 @@ Rails.application.configure do
   # Use a different cache store in production.
   # config.cache_store = :mem_cache_store
 
-  # Use a real queuing backend for Active Job (and separate queues per environment).
-  config.active_job.queue_adapter = :inline
-  config.solid_queue.connects_to = { database: { writing: :queue } }
   # config.active_job.queue_name_prefix = "backend_production"
-  
+
   # Disable caching for Action Mailer templates even if Action Controller
   # caching is enabled.
   config.action_mailer.perform_caching = false
@@ -88,15 +85,13 @@ Rails.application.configure do
 
   # Only use :id for inspections in production.
   config.active_record.attributes_for_inspect = [ :id ]
+
   config.public_file_server.enabled = ENV['RAILS_SERVE_STATIC_FILES'].present?
-  # Enable DNS rebinding protection and other `Host` header attacks.
-  # config.hosts = [
-  #   "example.com",     # Allow requests from example.com
-  #   /.*\.example\.com/ # Allow requests from subdomains like `www.example.com`
-  # ]
-  # Skip DNS rebinding protection for the default health check endpoint.
-  # config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
+
+  # Use inline queue adapter — exécute les jobs directement sans worker séparé
   config.active_job.queue_adapter = :inline
-  config.action_mailer.default_url_options = { host: ENV['RENDER_EXTERNAL_URL'] || 'https://pixselsim-studio.onrender.com' }
-Rails.application.routes.default_url_options = { host: ENV['RENDER_EXTERNAL_URL'] || 'https://pixselsim-studio.onrender.com' }
+
+  # URL par défaut pour les liens ActiveStorage
+  config.action_mailer.default_url_options = { host: 'https://pixselsim-studio.onrender.com' }
+  routes.default_url_options = { host: 'https://pixselsim-studio.onrender.com' }
 end
