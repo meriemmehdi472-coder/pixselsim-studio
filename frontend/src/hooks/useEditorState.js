@@ -211,23 +211,9 @@ export function useEditorState(mediaFile) {
   const handleVideoCropConfirm = useCallback((cropData) => {
     setShowVideoCrop(false);
     setPendingCrop(cropData);
-    const video = imgRef.current;
-    if (video && video.videoWidth > 0) {
-      const canvas = document.createElement("canvas");
-      const vr     = video.getBoundingClientRect();
-      const scaleX = video.videoWidth  / vr.width;
-      const scaleY = video.videoHeight / vr.height;
-      canvas.width  = Math.round(cropData.display.w * scaleX);
-      canvas.height = Math.round(cropData.display.h * scaleY);
-      canvas.getContext("2d").drawImage(
-        video,
-        cropData.x, cropData.y, cropData.w, cropData.h,
-        0, 0, canvas.width, canvas.height
-      );
-      setPendingCropPreviewUrl(canvas.toDataURL("image/png"));
-    } else {
-      setPendingCropPreviewUrl(null);
-    }
+    // Pas d'aperçu canvas (bloqué par CORS sur vidéo cross-origin)
+    // L'aperçu affiche juste le badge "Zone sélectionnée"
+    setPendingCropPreviewUrl(null);
     showToast(`Zone ${cropData.w}×${cropData.h}px sélectionnée`);
   }, [showToast]);
 
