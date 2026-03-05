@@ -205,6 +205,7 @@ function ExportPanel({ isVideo, exportFmt, onExportFmtChange, onExportImage, exp
       </button>
 
       {/* ── Un seul bouton : lance l'export ET télécharge automatiquement ── */}
+      {/* Bouton principal : export ou re-export */}
       <button onClick={onExportVideo} disabled={busy || videoCropLoading}
         style={{ width: "100%", padding: "13px 0", borderRadius: 8, border: "none",
           background: busy ? "#1e1e2e" : "linear-gradient(135deg,#16a34a,#22c55e)",
@@ -212,10 +213,20 @@ function ExportPanel({ isVideo, exportFmt, onExportFmtChange, onExportImage, exp
           cursor: busy ? "not-allowed" : "pointer",
           fontSize: 13, fontWeight: 800, fontFamily: FONT, marginBottom: 8,
           boxShadow: busy ? "none" : "0 4px 20px rgba(34,197,94,.25)" }}>
-        {busy ? "⏳ Export en cours…" : "⬇ Télécharger la vidéo"}
+        {busy ? "⏳ Export en cours…" : videoExportStatus === "done" ? "↺ Re-exporter la vidéo" : "⬇ Télécharger la vidéo"}
       </button>
 
-      {/* Barre de progression */}
+      {/* Bouton téléchargement manuel si export déjà fait */}
+      {videoExportStatus === "done" && videoDownloadUrl && (
+        <button onClick={onDownloadVideo}
+          style={{ width: "100%", padding: "9px 0", borderRadius: 7, border: "1px solid #16a34a44",
+            background: "#16a34a11", color: "#22c55e", cursor: "pointer",
+            fontSize: 12, fontWeight: 700, fontFamily: FONT, marginBottom: 8 }}>
+          ⬇ Retélécharger
+        </button>
+      )}
+
+      {/* Statut */}
       {videoExportStatus && videoExportStatus !== "done" && (
         <div style={{ fontSize: 11, color: statusColor, textAlign: "center", padding: "4px 0", marginBottom: 6 }}>
           {videoExportStatus === "pending"    && "• En file d'attente…"}

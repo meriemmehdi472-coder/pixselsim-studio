@@ -17,7 +17,7 @@ const HANDLES = [
 ];
 
 export default function FrameOverlay({
-  frame, onUpdate, isSelected, onSelect, mediaW, mediaH,
+  frame, onUpdate, isSelected, onSelect, mediaW, mediaH, pointerEventsOnlyWhenSelected,
 }) {
   const scale     = frame.frameScale     ?? 1;
   const offsetX   = frame.frameOffsetX   ?? 0;
@@ -120,10 +120,13 @@ export default function FrameOverlay({
       style={{
         position: "absolute",
         left: fx, top: fy, width: fw, height: fh,
-        cursor: "move", zIndex: 15,
+        cursor: isSelected ? "move" : "pointer",
+        zIndex: 15,
         background: "transparent",   // ← JAMAIS de fond
         boxSizing: "border-box",
-        pointerEvents: "auto",
+        // Quand non sélectionné : laisse passer les events aux layers texte/emoji en dessous
+        // Un simple clic sélectionne le cadre sans bloquer les autres interactions
+        pointerEvents: pointerEventsOnlyWhenSelected && !isSelected ? "none" : "auto",
         ...borderCss,
       }}
     >

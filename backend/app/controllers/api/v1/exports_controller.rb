@@ -30,12 +30,27 @@ module Api
         media_type = media_file.media_type.to_s.downcase
 
         if media_type.include?("image") || media_type.include?("photo")
-          # ── Export PHOTO : traitement synchrone ─────────────────────────
-          # On traite directement ici (pas de job) car les photos sont rapides
+          # ── Export PHOTO ────────────────────────────────────────────────
+          # Si aucun layer persisté en BDD → on retourne directement l'URL
+          # du média original (l'export canvas est fait côté client)
           layers = Layer.where(id: layer_ids).includes(:annotations).to_a
 
-          # Injecter les métadonnées de style (couleur, taille) sur les layers en mémoire
-          # sans modifier la base de données
+          if layers.empty? && !media_file.file.attached?
+            render json: { error: "Fichier média introuvable" }, status: :unprocessable_entity
+            return
+          end
+
+          # Pas de layers BDD : retourner l'URL directe du fichier original
+          if layers.empty?
+            render json: {
+              token:     SecureRandom.hex(8),
+              status:    "done",
+              image_url: rails_blob_url(media_file.file, disposition: "attachment")
+            }, status: :created
+            return
+          end
+
+          # Avec layers : utiliser PhotoExportService si disponible
           Array(layers_meta).each do |meta|
             id    = (meta[:id] || meta["id"]).to_i
             layer = layers.find { |l| l.id == id }
@@ -56,21 +71,18 @@ module Api
           ext          = File.extname(output_path).delete(".").downcase
           content_type = ext == "png" ? "image/png" : "image/jpeg"
 
-          # Attache le fichier exporté à Active Storage
           export = VideoExport.create!(media_file: media_file, status: "done")
           export.file.attach(
             io:           File.open(output_path),
             filename:     "export_#{media_file.id}_#{Time.now.to_i}.#{ext}",
             content_type: content_type
           )
-
           File.delete(output_path) if File.exist?(output_path)
 
-          # Réponse immédiate avec l'URL — le front peut télécharger directement
           render json: {
             token:     export.token,
             status:    "done",
-            image_url: url_for(export.file)
+            image_url: rails_blob_url(export.file, disposition: "attachment")
           }, status: :created
 
         else

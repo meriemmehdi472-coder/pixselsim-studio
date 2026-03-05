@@ -92,6 +92,9 @@ Rails.application.configure do
   config.active_job.queue_adapter = :inline
 
   # URL par défaut pour les liens ActiveStorage
-  config.action_mailer.default_url_options = { host: 'https://pixselsim-studio.onrender.com' }
-  routes.default_url_options = { host: 'https://pixselsim-studio.onrender.com' }
+  config.action_mailer.default_url_options = { host: ENV.fetch("RENDER_EXTERNAL_URL", "https://pixselsim-studio.onrender.com") }
+  routes.default_url_options = { host: ENV.fetch("RENDER_EXTERNAL_URL", "https://pixselsim-studio.onrender.com") }
+
+  # ActiveStorage URLs absolues
+  config.active_storage.resolve_model_to_route = :rails_storage_proxy
 end
