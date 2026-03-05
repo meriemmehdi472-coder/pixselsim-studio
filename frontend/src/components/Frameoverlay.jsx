@@ -17,7 +17,7 @@ const HANDLES = [
 ];
 
 export default function FrameOverlay({
-  frame, onUpdate, isSelected, onSelect, mediaW, mediaH, pointerEventsOnlyWhenSelected,
+  frame, onUpdate, isSelected, onSelect, mediaW, mediaH, pointerEventsOnlyWhenSelected, isVideo,
 }) {
   const scale     = frame.frameScale     ?? 1;
   const offsetX   = frame.frameOffsetX   ?? 0;
@@ -120,13 +120,13 @@ export default function FrameOverlay({
       style={{
         position: "absolute",
         left: fx, top: fy, width: fw, height: fh,
-        cursor: isSelected ? "move" : "pointer",
+        cursor: isVideo ? "default" : "move",
         zIndex: 15,
-        background: "transparent",   // ← JAMAIS de fond
+        background: "transparent",
         boxSizing: "border-box",
-        // Quand non sélectionné : laisse passer les events aux layers texte/emoji en dessous
-        // Un simple clic sélectionne le cadre sans bloquer les autres interactions
-        pointerEvents: pointerEventsOnlyWhenSelected && !isSelected ? "none" : "auto",
+        // Sur vidéo : le cadre lui-même ne capture pas les events (les contrôles restent accessibles)
+        // Les poignées ont leurs propres handlers et restent cliquables
+        pointerEvents: isVideo ? "none" : "auto",
         ...borderCss,
       }}
     >
@@ -153,6 +153,7 @@ export default function FrameOverlay({
           cursor: h.cursor, zIndex: 25,
           transform: "translate(-50%, -50%)",
           touchAction: "none",
+          pointerEvents: "auto", // toujours cliquable même si le parent est none
         };
         if (h.top    !== undefined) hs.top    = h.top;
         if (h.bottom !== undefined) hs.bottom = h.bottom;

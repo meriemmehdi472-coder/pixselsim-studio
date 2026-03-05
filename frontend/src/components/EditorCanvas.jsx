@@ -94,14 +94,12 @@ export default function EditorCanvas({
               {/* ── Cadre avec poignées ── */}
               {activeFrame && imgRef.current && (
                 <>
-                  {/* Badge pour (re)sélectionner le cadre quand non sélectionné */}
-                  {!selectedFrameId && (
-                    <div
-                      onClick={(e) => { e.stopPropagation(); onSelectFrame(activeFrame.id); }}
-                      style={{ position: "absolute", top: 6, left: 6, zIndex: 18, background: "rgba(99,102,241,.85)", color: "#fff", fontSize: 10, fontWeight: 800, padding: "3px 8px", borderRadius: 5, cursor: "pointer", userSelect: "none", backdropFilter: "blur(4px)", border: "1px solid rgba(255,255,255,.2)" }}>
-                      ▣ Cadre
-                    </div>
-                  )}
+                  {/* Badge pour sélectionner/désélectionner le cadre */}
+                  <div
+                    onClick={(e) => { e.stopPropagation(); onSelectFrame(selectedFrameId === activeFrame.id ? null : activeFrame.id); }}
+                    style={{ position: "absolute", top: 6, left: 6, zIndex: 30, background: selectedFrameId ? "rgba(99,102,241,.95)" : "rgba(99,102,241,.6)", color: "#fff", fontSize: 10, fontWeight: 800, padding: "3px 8px", borderRadius: 5, cursor: "pointer", userSelect: "none", backdropFilter: "blur(4px)", border: "1px solid rgba(255,255,255,.2)" }}>
+                    {selectedFrameId === activeFrame.id ? "✓ Cadre sélectionné — Échap pour quitter" : "▣ Modifier le cadre"}
+                  </div>
                   <FrameOverlay
                     frame={activeFrame}
                     mediaW={imgRef.current.offsetWidth  || imgRef.current.clientWidth  || 400}
@@ -109,11 +107,10 @@ export default function EditorCanvas({
                     isSelected={selectedFrameId === activeFrame.id}
                     onSelect={() => onSelectFrame(activeFrame.id)}
                     onUpdate={(patch) => onUpdateFrame(activeFrame.id, patch)}
-                    pointerEventsOnlyWhenSelected={true}
+                    isVideo={isVideo}
                   />
                 </>
               )}
-              
 
               {/* Calques texte / emoji */}
               {layers.filter(l => l.layer_type !== "frame").map(layer => {
@@ -122,7 +119,7 @@ export default function EditorCanvas({
                   <div key={layer.id}
                     onMouseDown={(e) => onLayerMouseDown(e, layer)}
                     onClick={(e) => { e.stopPropagation(); onLayerClick(layer); }}
-                    style={{ position: "absolute", left: pos.x, top: pos.y, transform: "translate(-50%,-50%)", cursor: dragging === layer.id ? "grabbing" : layer.layer_type === "text" ? "pointer" : "grab", zIndex: 20, userSelect: "none" }}>
+                    style={{ position: "absolute", left: pos.x, top: pos.y, transform: "translate(-50%,-50%)", cursor: dragging === layer.id ? "grabbing" : layer.layer_type === "text" ? "pointer" : "grab", zIndex: 10, userSelect: "none" }}>
                     {layer.layer_type === "text" && (
                       <div style={{ background: "rgba(0,0,0,.72)", color: layer.textColor || "#fff", padding: "5px 14px", borderRadius: 6, fontSize: layer.fontSize || 18, fontWeight: 700, whiteSpace: "nowrap", backdropFilter: "blur(6px)", border: "1px solid rgba(255,255,255,.12)", fontFamily: FONT, outline: editingLayer?.id === layer.id ? "2px solid #6366f1" : "none" }}>
                         {layer.annotations[0]?.content}
