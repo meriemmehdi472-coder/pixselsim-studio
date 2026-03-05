@@ -37,14 +37,6 @@ class VideoCompositorService
       px        = layer.position_x.to_f
       py        = layer.position_y.to_f
 
-      # Adapter la position si on a les dimensions canvas
-      if @canvas_w && @canvas_h && @canvas_w > 0 && @canvas_h > 0
-        video_w = @crop ? @crop[:w].to_f : @crop ? @crop[:w].to_f : nil
-        video_h = @crop ? @crop[:h].to_f : nil
-        # Positions relatives au canvas → pixels natifs vidéo
-        # On laisse ffmpeg gérer via main_w / main_h
-      end
-
       safe_text = content.gsub("'", "\\'").gsub(":", "\\:")
       vf_filters << "drawtext=text='#{safe_text}':fontcolor=#{color}:fontsize=#{font_size}:x=#{px.round}:y=#{py.round}:box=1:boxcolor=black@0.5:boxborderw=6:font=DejaVu-Sans-Bold"
     end
@@ -88,11 +80,13 @@ class VideoCompositorService
 
   private
 
+  # Streaming par chunks pour éviter de charger toute la vidéo en RAM
   def fetch_input_path
     if @media_file.file.attached?
       tmp = Tempfile.new(["src", ".mp4"], Rails.root.join("tmp"), binmode: true)
-      tmp.write(@media_file.file.download)
+      @media_file.file.download { |chunk| tmp.write(chunk) }
       tmp.flush
+      tmp.close
       @tmp_input_path = tmp.path
       tmp.path
     else
@@ -109,18 +103,12 @@ class VideoCompositorService
 
     case clip_type
     when "radius"
-      # Pour un cercle parfait : vignette
       if clip_value == "50%"
-        return "vignette=angle=PI/4"   # approximation visuelle
+        return "vignette=angle=PI/4"
       end
-      # Arrondi : on simule avec un drawbox overlay (limitation ffmpeg)
-      # On utilise un overlay transparent pour simuler les coins arrondis
-      # La vraie solution est un masque PNG — on le génère à la volée
       build_rounded_overlay_filter(clip_value, color, thickness)
 
     when "clip"
-      # Pour les formes polygon, on dessine la bordure avec drawbox (approximation)
-      # ffmpeg ne supporte pas clip-path natif → on utilise un masque PNG externe
       build_polygon_border_filter(clip_value, color, thickness)
 
     else
@@ -128,14 +116,11 @@ class VideoCompositorService
     end
   end
 
-  # Bordure simple colorée (drawbox sur tout le périmètre)
   def build_rounded_overlay_filter(radius_val, color, thickness)
     "drawbox=x=0:y=0:w=iw:h=ih:color=#{color}@1.0:t=#{thickness}"
   end
 
   def build_polygon_border_filter(clip_value, color, thickness)
-    # Pour les formes complexes, on dessine juste une bordure rectangulaire
-    # Un masque PNG généré dynamiquement serait idéal mais complexe en temps réel
     "drawbox=x=0:y=0:w=iw:h=ih:color=#{color}@1.0:t=#{thickness}"
   end
 

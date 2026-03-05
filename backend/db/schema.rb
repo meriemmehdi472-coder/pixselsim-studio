@@ -203,6 +203,17 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_05_051839) do
     t.index ["key"], name: "index_solid_queue_semaphores_on_key", unique: true
   end
 
+  create_table "video_exports", force: :cascade do |t|
+    t.string "token", null: false
+    t.string "status", default: "pending"
+    t.text "error"
+    t.bigint "media_file_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["media_file_id"], name: "index_video_exports_on_media_file_id"
+    t.index ["token"], name: "index_video_exports_on_token", unique: true
+  end
+
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "annotations", "layers"
@@ -215,4 +226,5 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_05_051839) do
   add_foreign_key "solid_queue_ready_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_recurring_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_scheduled_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
+  add_foreign_key "video_exports", "media_files"
 end

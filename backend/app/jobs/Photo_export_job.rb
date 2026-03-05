@@ -1,18 +1,18 @@
-# app/jobs/video_export_job.rb
-class VideoExportJob < ApplicationJob
+# app/jobs/photo_export_job.rb
+class PhotoExportJob < ApplicationJob
   queue_as :video_export
 
   def perform(media_file_id, layer_ids, export_token,
-              crop: nil, canvas_w: nil, canvas_h: nil,
               frame_preset: nil, frame_color: nil, frame_thickness: nil,
               layers_meta: [])
 
-    export     = VideoExport.find_by!(token: export_token)
+    export = VideoExport.find_by!(token: export_token)
     export.update!(status: "processing")
 
     media_file = MediaFile.find(media_file_id)
     layers     = Layer.where(id: layer_ids).includes(:annotations).to_a
 
+    # Injecter les métadonnées de style sur les objets Layer en mémoire
     Array(layers_meta).each do |meta|
       id    = (meta[:id] || meta["id"]).to_i
       layer = layers.find { |l| l.id == id }
@@ -23,38 +23,38 @@ class VideoExportJob < ApplicationJob
       layer.define_singleton_method(:font_size)  { fs&.to_i || 28 }
     end
 
-    output_path = VideoCompositorService.new(
-      media_file, layers,
-      crop:            crop&.transform_keys(&:to_sym),
-      canvas_w:        canvas_w,
-      canvas_h:        canvas_h,
-      frame_preset:    frame_preset&.transform_keys(&:to_s),
+    frame_preset_h = frame_preset&.transform_keys(&:to_s)
+
+    output_path = PhotoExportService.new(
+      media_file,
+      layers,
+      frame_preset:    frame_preset_h,
       frame_color:     frame_color,
       frame_thickness: frame_thickness
     ).call
 
+    # Détecter l'extension pour le content_type
+    ext          = File.extname(output_path).delete(".").downcase
+    content_type = ext == "png" ? "image/png" : "image/jpeg"
+    filename     = "export_#{media_file_id}_#{Time.now.to_i}.#{ext}"
+
     export.file.attach(
       io:           File.open(output_path),
-      filename:     "export_#{media_file_id}_#{Time.now.to_i}.mp4",
-      content_type: "video/mp4"
+      filename:     filename,
+      content_type: content_type
     )
     export.update!(status: "done")
 
-    video_url = Rails.application.routes.url_helpers.rails_blob_url(
-      export.file.blob,
-      host: "localhost",
-      port: 3000
-    )
-
+    # Notifier le front via ActionCable
     ActionCable.server.broadcast("export_channel_#{export.token}", {
       status:    "done",
-      video_url: video_url
+      video_url: Rails.application.routes.url_helpers.url_for(export.file)
     })
 
     File.delete(output_path) if File.exist?(output_path)
 
   rescue => e
-    Rails.logger.error("[VideoExportJob] FAILED: #{e.message}\n#{e.backtrace.first(5).join("\n")}")
+    Rails.logger.error("[PhotoExportJob] FAILED: #{e.message}\n#{e.backtrace.first(5).join("\n")}")
     VideoExport.find_by(token: export_token)&.update!(status: "failed", error: e.message.truncate(500))
   end
 end

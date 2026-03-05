@@ -259,16 +259,25 @@ export function useEditorState(initialMediaFile) {
 
   // ── Téléchargement / Partage ──────────────────────────────────────────
   // Desktop → <a download>, Mobile → navigator.share si dispo
-  const handleDownload = useCallback((url, filename) => {
-    // Téléchargement direct immédiat — pas de fetch intermédiaire
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.target = "_blank"; // fallback si download bloqué cross-origin
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    showToast("✓ Téléchargement lancé !");
+  const handleDownload = useCallback(async (url, filename) => {
+    try {
+      // Fetch en blob pour forcer le téléchargement (évite l'ouverture dans un nouvel onglet)
+      const res     = await fetch(url);
+      const blob    = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a       = document.createElement("a");
+      a.href     = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      showToast("✓ Téléchargement lancé !");
+    } catch {
+      // Fallback si fetch bloqué
+      window.open(url, "_blank");
+      showToast("✓ Fichier ouvert dans un nouvel onglet");
+    }
 
     // Partage natif mobile en parallèle (optionnel, non bloquant)
     const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
