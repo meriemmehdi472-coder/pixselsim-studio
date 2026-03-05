@@ -3,7 +3,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useApi } from "./useApi";
 
-const API = "http://localhost:3000/api/v1";
+const API = (import.meta.env.VITE_API_URL || "http://localhost:3000") + "/api/v1";
 
 function useHistory(initial) {
   const [index, setIndex]     = useState(0);
@@ -56,7 +56,6 @@ export function useEditorState(mediaFile) {
   const pollRef       = useRef(null);
 
   // ── stateRef : accès synchrone à toutes les valeurs courantes ────────────
-  // Évite les closures obsolètes dans useCallback sans dépendances
   const stateRef = useRef({});
   useEffect(() => {
     stateRef.current = {
@@ -65,7 +64,6 @@ export function useEditorState(mediaFile) {
       livePos, layers, imgSrc, pendingCrop,
     };
   });
-  // Aussi mettre à jour de façon synchrone (avant prochain render)
   stateRef.current = {
     activeTool, textInput, selectedEmoji,
     dragging, dragOffset, cropStart, cropRect,
@@ -95,7 +93,8 @@ export function useEditorState(mediaFile) {
         const data = await res.json();
         setVideoExportStatus(data.status);
         if (data.status==="done") {
-          setVideoDownloadUrl(`http://localhost:3000${data.download_url}`);
+          const base = import.meta.env.VITE_API_URL || "http://localhost:3000";
+          setVideoDownloadUrl(`${base}${data.download_url}`);
           showToast("✓ Vidéo prête !");
           clearInterval(pollRef.current);
         } else if (data.status==="failed") {
@@ -130,7 +129,6 @@ export function useEditorState(mediaFile) {
         ...extra
       };
     }
-    // Utilise stateRef pour avoir les layers les plus récents
     pushLayers([...stateRef.current.layers, nl]);
     showToast(`Calque "${type}" ajouté`);
   }, [projectId, mediaFile, request, pushLayers, showToast]);
@@ -194,7 +192,6 @@ export function useEditorState(mediaFile) {
     c.width=sw; c.height=sh;
     c.getContext("2d").drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
     const dataUrl = c.toDataURL("image/png");
-    // Sauvegarder l'ancienne source dans l'historique
     setCropHistory(prev => [...prev, stateRef.current.imgSrc]);
     setImgSrc(dataUrl);
     const a = document.createElement("a");
@@ -214,7 +211,6 @@ export function useEditorState(mediaFile) {
   const handleVideoCropConfirm = useCallback((cropData) => {
     setShowVideoCrop(false);
     setPendingCrop(cropData);
-    // Capturer une frame de la vidéo pour l'aperçu immédiat
     const video = imgRef.current;
     if (video && video.videoWidth > 0) {
       const canvas = document.createElement("canvas");
@@ -230,7 +226,6 @@ export function useEditorState(mediaFile) {
       );
       setPendingCropPreviewUrl(canvas.toDataURL("image/png"));
     } else {
-      // Fallback si getBoundingClientRect pas dispo : juste afficher le badge
       setPendingCropPreviewUrl(null);
     }
     showToast(`Zone ${cropData.w}×${cropData.h}px sélectionnée`);
@@ -243,21 +238,17 @@ export function useEditorState(mediaFile) {
   }, [showToast]);
 
   // ── Export vidéo ──────────────────────────────────────────────────────────
-  // ── Export vidéo ──────────────────────────────────────────────────────────
   const handleExportVideo = useCallback(async () => {
     setExporting(true); setVideoExportStatus("pending"); setVideoDownloadUrl(null);
     try {
       const { layers: ls, pendingCrop: crop } = stateRef.current;
 
-      // IDs persistés Rails uniquement
       const layerIds = ls.filter(l => typeof l.id === "number" && l.id < 1e12).map(l => l.id);
 
-      // Métadonnées style (couleur, taille) non stockées en DB
       const layersMeta = ls
         .filter(l => typeof l.id === "number" && l.id < 1e12 && l.layer_type === "text")
         .map(l => ({ id: l.id, text_color: l.textColor || "#ffffff", font_size: l.fontSize || 28 }));
 
-      // Dimensions affichées de la vidéo → pour convertir positions calques en natif
       const videoEl = imgRef.current;
       const canvas_w = videoEl ? Math.round(videoEl.getBoundingClientRect().width)  : null;
       const canvas_h = videoEl ? Math.round(videoEl.getBoundingClientRect().height) : null;
@@ -275,11 +266,9 @@ export function useEditorState(mediaFile) {
     setExporting(false);
   }, [projectId, mediaFile, showToast]);
 
-
   // ── Événements canvas ─────────────────────────────────────────────────────
   const handleCanvasClick = useCallback((e) => {
     const { activeTool: tool, dragging: drag, textInput: txt, selectedEmoji: emoji } = stateRef.current;
-    // Ignorer si on était en train de dragger
     if (drag) return;
     if (!tool || tool==="crop" || tool==="frame") return;
     const rect = containerRef.current.getBoundingClientRect();
