@@ -64,7 +64,7 @@ Rails.application.configure do
   # config.cache_store = :mem_cache_store
 
   # Use a real queuing backend for Active Job (and separate queues per environment).
-  config.active_job.queue_adapter = :solid_queue
+  config.active_job.queue_adapter = :inline
   config.solid_queue.connects_to = { database: { writing: :queue } }
   # config.active_job.queue_name_prefix = "backend_production"
   
@@ -97,3 +97,4 @@ Rails.application.configure do
   # Skip DNS rebinding protection for the default health check endpoint.
   # config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
 end
+  config.active_job.queue_adapter = :inline
