@@ -20,6 +20,12 @@ test:
   port: 5433
 
 production:
-  <<: *default
-  url: <%= ENV["DATABASE_URL"] %>
-  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+   primary:
+    <<: *default
+    url: <%= ENV["DATABASE_URL"] %>
+    pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+   queue:
+    <<: *default
+    url: <%= ENV["DATABASE_URL"] %>
+    pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+    migrations_paths: db/queue_migrate
