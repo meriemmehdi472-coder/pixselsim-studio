@@ -31,3 +31,21 @@ L’ajout de différents onglets et formes pour encadrer les médias.
 L’intégration de nouveaux types de cadres pour offrir davantage d’options de personnalisation.
 
 La possibilité d’importer plusieurs photos ou vidéos afin de réaliser un véritable montage vidéo.
+
+
+Backend
+- Récupérer le dépôt en local ( ordinateur) : git clone https://github.com/meriemmehdi472-coder/pixselsim-studio.com
+- Ce déplaer vers le dossier Backend : cd pixselsim-studio/backend 
+-Installer les dépendances Rails nécessaires : bundle install
+-Créer la db locale à partir du fichier config/database.yml : rails db:create
+-Migrer la base de données pour créer les tables et la structure  : rails db:migrate 
+-Lancer le serveur back : rails server || rails s
+Frontend
+-cd frontend 
+-Installer les dépendances du projet : npm install 
+-Lancer le serveur de développement : npm run dev
+
+
+le serveur est en localhost
+Backend : http://localhost:3000
+Frontend : http://localhost:5173
