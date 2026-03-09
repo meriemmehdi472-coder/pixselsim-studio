@@ -11,7 +11,7 @@
 module Api
   module V1
     class ExportsController < ApplicationController
-
+      before_action :authenticate!
       # POST /api/v1/projects/:project_id/media_files/:media_file_id/exports
       #
       # Pour les PHOTOS → export synchrone (réponse immédiate avec l'URL)

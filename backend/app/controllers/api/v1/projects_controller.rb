@@ -1,6 +1,7 @@
 module Api
   module V1
     class ProjectsController < ApplicationController
+      before_action :authenticate!
       def index
         @projects = Project.all
         render json: @projects

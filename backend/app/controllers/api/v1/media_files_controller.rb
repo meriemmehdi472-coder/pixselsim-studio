@@ -2,7 +2,7 @@ module Api
   module V1
     class MediaFilesController < ApplicationController
       skip_before_action :verify_authenticity_token, raise: false
-
+      before_action :authenticate!
       before_action :set_project
       before_action :set_media_file, only: [:show, :destroy, :crop, :ancestors]
 

@@ -14,14 +14,14 @@ Rails.application.configure do
     config.cache_store = :null_store
   end
 
-  # Utilise le stockage local (attention : s'efface au redémarrage sur Render)
+  # Stockage local 
   config.active_storage.service = :local
 
   config.action_mailer.raise_delivery_errors = false
   config.action_mailer.perform_caching = false
 
   # --- AJUSTEMENT DYNAMIQUE DES URLS ---
-  # Si BACKEND_URL existe (sur Render), on l'utilise. Sinon, localhost.
+  # Détecte automatiquement l'adresse du serveur
   host_url = ENV['BACKEND_URL'] || "localhost:3000"
   
   config.action_mailer.default_url_options = { host: host_url }

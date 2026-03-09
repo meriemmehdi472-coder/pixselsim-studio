@@ -1,6 +1,7 @@
 module Api
   module V1
     class LayersController < ApplicationController
+      before_action :authenticate!
       before_action :set_media_file
       before_action :set_layer, only: [:show, :update, :destroy]
 

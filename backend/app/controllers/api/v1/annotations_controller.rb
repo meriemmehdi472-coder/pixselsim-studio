@@ -1,6 +1,7 @@
 module Api
   module V1
     class AnnotationsController < ApplicationController
+      before_action :authenticate!
       before_action :set_layer
       before_action :set_annotation, only: [:show, :update, :destroy]
 
