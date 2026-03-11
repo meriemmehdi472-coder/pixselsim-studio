@@ -1,5 +1,3 @@
-# config/initializers/authentification.rb
-
 # ── Session cookie ──────────────────────────────────────────────────────────
 Rails.application.config.middleware.use ActionDispatch::Cookies
 

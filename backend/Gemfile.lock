@@ -382,6 +382,7 @@ DEPENDENCIES
   connection_pool (= 2.4.1)
   debug
   devise
+  jwt
   mini_magick (~> 5.3)
   omniauth-google-oauth2
   omniauth-rails_csrf_protection
