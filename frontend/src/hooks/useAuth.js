@@ -1,6 +1,4 @@
-// src/hooks/useAuth.js
-//
-// Hook pour gérer l'état d'authentification de l'utilisateur.
+//Hook pour gérer l'état d'authentification de l'utilisateur.
 // Utilise credentials: "include" pour envoyer le cookie de session Rails.
 //
 import { useState, useEffect } from "react";
@@ -19,11 +17,17 @@ export function useAuth() {
       window.history.replaceState({}, "", window.location.pathname);
     }
 
-    fetch(`${API}/api/v1/me`, { credentials: "include" })
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000); // 5 secondes max
+
+    fetch(`${API}/api/v1/me`, { credentials: "include", signal: controller.signal })
       .then(r => r.ok ? r.json() : null)
       .then(data => setUser(data?.user || null))
       .catch(() => setUser(null))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        clearTimeout(timeout);
+        setLoading(false);
+      });
   }, []);
 
   // Inscription email/mot de passe
