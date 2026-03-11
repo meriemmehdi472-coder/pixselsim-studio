@@ -14,9 +14,10 @@ module Api
         @user = User.from_omniauth(auth)
 
         if @user.persisted?
-          session[:user_id] = @user.id
-          redirect_to "#{FRONTEND_URL}?auth=success", allow_other_host: true
-        else
+          # session[:user_id] = @user.id
+          token=@user.generate_auth_token
+          redirect_to "#{FRONTEND_URL}?auth=success&token=#{token}", allow_other_host: true
+         else
           errors = @user.errors.full_messages.join(", ")
           Rails.logger.error("[OauthController] Échec création user: #{errors}")
           redirect_to "#{FRONTEND_URL}/login?error=account_creation_failed", allow_other_host: true
