@@ -2,6 +2,7 @@
 Rails.application.routes.draw do
 
   devise_for :users,
+    path: "",
     only: [:omniauth_callbacks],
     controllers: { omniauth_callbacks: "api/v1/oauth" }
 

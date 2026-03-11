@@ -63,7 +63,7 @@ export function useAuth() {
   };
 
   const loginWithGoogle = () => {
-    window.location.href = `${API}/users/auth/google_oauth2`;
+    window.location.href = `${API}/auth/google_oauth2`;
   };
 
   return { user, loading, signup, login, logout, loginWithGoogle };
