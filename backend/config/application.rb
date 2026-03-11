@@ -30,7 +30,7 @@ module Backend
     config.api_only = true
 
     #session middleware
-    config?middleware.user ActionDispatch::Cookies
+    config.middleware.user ActionDispatch::Cookies
     config.middleware.use ActionDispatch::Session::CookieStore
   end
 end
