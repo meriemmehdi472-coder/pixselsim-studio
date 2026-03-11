@@ -31,6 +31,6 @@ module Backend
 
     #session middleware
     config.middleware.user ActionDispatch::Cookies
-    config.middleware.use ActionDispatch::Session::CookieStore
+    config.middleware.user ActionDispatch::Session::CookieStore
   end
 end
