@@ -4,6 +4,7 @@ export function useApi() {
   const request = async (path, options = {}) => {
     const isFormData = options.body instanceof FormData;
     const res = await fetch(`${API}${path}`, {
+      credentials: "include",
       headers: isFormData ? {} : { "Content-Type": "application/json" },
       ...options,
     });

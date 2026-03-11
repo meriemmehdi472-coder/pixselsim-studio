@@ -3,17 +3,20 @@ module Api
     class ProjectsController < ApplicationController
       before_action :authenticate!
       def index
-        @projects = Project.all
+        # @projects = Project.all
+        @projects = current_user.projects
         render json: @projects
+
       end
 
       def show
-        @project = Project.find(params[:id])
+        # @project = Project.find(params[:id])
+        @project = current_user.projects.find(params[:id])
         render json: @project
       end
 
       def create
-        @project = Project.new(project_params)
+        @project = current_user.projects.new(project_params)
         if @project.save
           render json: @project, status: :created
         else
@@ -22,7 +25,7 @@ module Api
       end
 
       def destroy
-        @project = Project.find(params[:id])
+        @project =current_user.projects.find(params[:id])
         @project.destroy
         render json: { message: 'Projet supprimé' }
       end

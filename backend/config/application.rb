@@ -9,6 +9,7 @@ Bundler.require(*Rails.groups)
 module Backend
   class Application < Rails::Application
     # Initialize configu ration defaults for originally generated Rails version.
+    config.active_job.queue_adapter = :solid_queue
     config.load_defaults 7.2
 
     # Please, add to the `ignore` list any other `lib` subdirectories that do

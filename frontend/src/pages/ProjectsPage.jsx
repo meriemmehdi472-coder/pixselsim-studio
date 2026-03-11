@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApi } from "../hooks/useApi";
+import { useAuth } from "../hooks/useAuth";
 import { COLORS, FONT } from "../styles";
 import Toast from "../components/Toast";
-import { IconPlus, IconTrash, IconClose } from "../components/Icons";
+import { IconPlus, IconClose } from "../components/Icons";
 
 export default function ProjectsPage() {
   const { request } = useApi();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading]   = useState(true);
@@ -21,23 +23,28 @@ export default function ProjectsPage() {
       try {
         const data = await request("/projects");
         setProjects(data);
-      } catch { showToast("Backend hors ligne — mode démo"); }
-      finally { setLoading(false); }
+      } catch {
+        showToast("Erreur lors du chargement des projets");
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
 
   const create = async () => {
     if (!form.title.trim()) return;
     try {
-      const p = await request("/projects", { method: "POST", body: JSON.stringify({ project: form }) });
+      const p = await request("/projects", {
+        method: "POST",
+        body: JSON.stringify({ project: form })
+      });
       setProjects(prev => [p, ...prev]);
+      setForm({ title: "", description: "" });
+      setCreating(false);
+      showToast("Projet créé ✓");
     } catch {
-      const fake = { id: Date.now(), ...form, created_at: new Date().toISOString() };
-      setProjects(prev => [fake, ...prev]);
+      showToast("Erreur lors de la création du projet");
     }
-    setForm({ title: "", description: "" });
-    setCreating(false);
-    showToast("Projet créé ✓");
   };
 
   const destroy = async (id, e) => {
@@ -45,6 +52,11 @@ export default function ProjectsPage() {
     try { await request(`/projects/${id}`, { method: "DELETE" }); } catch {}
     setProjects(prev => prev.filter(p => p.id !== id));
     showToast("Projet supprimé");
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
   };
 
   return (
@@ -57,10 +69,17 @@ export default function ProjectsPage() {
           </div>
           <div style={{ fontSize: 12, color: COLORS.faint, marginTop: 2 }}>Éditeur photo & vidéo</div>
         </div>
-        <button onClick={() => setCreating(true)}
-          style={{ display: "flex", alignItems: "center", gap: 8, background: COLORS.accent, color: "#fff", border: "none", borderRadius: 10, padding: "10px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: FONT }}>
-          <IconPlus /> Nouveau projet
-        </button>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          {user && <span style={{ color: COLORS.muted, fontSize: 13 }}>{user.email}</span>}
+          <button onClick={handleLogout}
+            style={{ background: "transparent", border: `1px solid ${COLORS.border2}`, color: COLORS.muted, borderRadius: 10, padding: "10px 20px", fontSize: 14, cursor: "pointer", fontFamily: FONT }}>
+            Déconnexion
+          </button>
+          <button onClick={() => setCreating(true)}
+            style={{ display: "flex", alignItems: "center", gap: 8, background: COLORS.accent, color: "#fff", border: "none", borderRadius: 10, padding: "10px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: FONT }}>
+            <IconPlus /> Nouveau projet
+          </button>
+        </div>
       </header>
 
       {/* Modal création */}
