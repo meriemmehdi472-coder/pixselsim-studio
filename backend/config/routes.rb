@@ -5,11 +5,7 @@ Rails.application.routes.draw do
     only: [:omniauth_callbacks],
     controllers: { omniauth_callbacks: "api/v1/oauth" }
 
-  devise_scope :user do
-    get "auth/google_oauth2/callback", to: "api/v1/oauth#google_oauth2"
-    get "auth/failure", to: "api/v1/oauth#failure"
-  end
-
+  
   namespace :api do
     namespace :v1 do
 
