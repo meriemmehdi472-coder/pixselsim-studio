@@ -60,7 +60,8 @@ export function useAuth() {
     };
 
     const logout = async () => {
-        localStorage.removeItem("auth_token"); // ✅ supprimer le token au logout
+        localStorage.removeItem("auth_token"); //supprimer le token au logout
+        localStorage.removeItem("persist:root"); // supprimer les données persistées (ex: projet en cours)
         await fetch(`${API}/api/v1/logout`, {
             method: "DELETE",
             credentials: "include",
