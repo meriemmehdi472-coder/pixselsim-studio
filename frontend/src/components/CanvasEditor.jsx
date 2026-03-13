@@ -1,4 +1,3 @@
-// components/CanvasEditor.jsx
 import { useState, useEffect } from "react";
 import { useEditorState }  from "../hooks/useEditorState";
 import EditorSidebar       from "./EditorSidebar";

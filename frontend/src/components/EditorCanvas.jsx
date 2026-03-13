@@ -1,4 +1,3 @@
-// components/EditorCanvas.jsx
 import { FONT } from "../styles";
 import FrameOverlay from "./Frameoverlay";
 

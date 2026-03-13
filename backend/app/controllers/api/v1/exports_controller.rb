@@ -1,13 +1,4 @@
-# app/controllers/api/v1/exports_controller.rb
-#
-# Contrôleur qui gère les exports de médias (photos et vidéos).
-#
-# Routes :
-#   POST /api/v1/projects/:project_id/media_files/:media_file_id/exports
-#     → Lance un export et retourne un token de suivi
-#   GET  /api/v1/exports/:token
-#     → Retourne le statut de l'export (pending / processing / done / failed)
-#
+
 module Api
   module V1
     class ExportsController < ApplicationController
@@ -128,3 +119,18 @@ module Api
     end
   end
 end
+
+
+
+
+
+
+
+# Contrôleur qui gère les exports de médias (photos et vidéos).
+#
+# Routes :
+#   POST /api/v1/projects/:project_id/media_files/:media_file_id/exports
+#     → Lance un export et retourne un token de suivi
+#   GET  /api/v1/exports/:token
+#     → Retourne le statut de l'export (pending / processing / done / failed)
+#

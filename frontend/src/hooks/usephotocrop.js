@@ -1,9 +1,3 @@
-// hooks/usePhotoCrop.js
-//
-// Recadrage photo côté client via un <canvas> HTML.
-// Le résultat est une dataURL stockée dans imgSrc (pas de requête serveur).
-// Gère aussi l'historique des recadrages pour permettre l'undo.
-//
 import { useState, useCallback } from "react";
 
 export function usephotocrop({ imgRef, containerRef, showToast, imgSrc, setImgSrc }) {
@@ -77,3 +71,10 @@ export function usephotocrop({ imgRef, containerRef, showToast, imgSrc, setImgSr
     handleCropMouseDown, handleCropMouseMove, handleCropMouseUp,
   };
 }
+
+
+
+// Recadrage photo côté client via un <canvas> HTML.
+// Le résultat est une dataURL stockée dans imgSrc (pas de requête serveur).
+// Gère aussi l'historique des recadrages pour permettre l'undo.
+//

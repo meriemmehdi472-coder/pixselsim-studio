@@ -1,4 +1,3 @@
-# app/models/media_file.rb
 class MediaFile < ApplicationRecord
   belongs_to :project
   belongs_to :parent, class_name: "MediaFile", optional: true

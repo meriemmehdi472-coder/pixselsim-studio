@@ -1,8 +1,3 @@
-// hooks/useLayers.js
-//
-// Gestion des calques (texte, emoji, cadre) et du drag & drop sur le canvas.
-// Chaque modification passe par pushLayers() pour alimenter l'historique undo/redo.
-//
 import { useState, useCallback } from "react";
 
 export function uselayers({ projectId, request, pushLayers, showToast, containerRef, stateRef }) {
@@ -141,3 +136,9 @@ export function uselayers({ projectId, request, pushLayers, showToast, container
     handleLayerMouseDown, handleDragMouseMove, handleDragMouseUp,
   };
 }
+
+
+
+// Gestion des calques (texte, emoji, cadre) et du drag & drop sur le canvas.
+// Chaque modification passe par pushLayers() pour alimenter l'historique undo/redo.
+//

@@ -1,4 +1,3 @@
-# app/models/video_export.rb
 class VideoExport < ApplicationRecord
   belongs_to :media_file
   has_one_attached :file

@@ -1,14 +1,3 @@
-# app/services/photo_export_service.rb
-#
-# Ce service exporte une photo avec les modifications appliquées :
-#   - Calques texte incrustés via ImageMagick (MiniMagick)
-#   - Calques emoji
-#   - Cadres et formes (cercle, arrondi, polygone, bordure colorée)
-#
-# Contrairement à VideoCompositorService (ffmpeg), ce service utilise
-# MiniMagick (wrapper Ruby pour ImageMagick) car les photos n'ont pas besoin
-# d'encodage vidéo.
-#
 require "mini_magick"
 
 class PhotoExportService
@@ -260,3 +249,18 @@ class PhotoExportService
     style.scan(/#[0-9a-fA-F]{3,6}/).first
   end
 end
+
+
+
+
+
+
+# Ce service exporte une photo avec les modifications appliquées :
+#   - Calques texte incrustés via ImageMagick (MiniMagick)
+#   - Calques emoji
+#   - Cadres et formes (cercle, arrondi, polygone, bordure colorée)
+#
+# Contrairement à VideoCompositorService (ffmpeg), ce service utilise
+# MiniMagick (wrapper Ruby pour ImageMagick) car les photos n'ont pas besoin
+# d'encodage vidéo.
+#

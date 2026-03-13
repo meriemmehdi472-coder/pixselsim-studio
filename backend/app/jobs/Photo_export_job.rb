@@ -1,4 +1,3 @@
-# app/jobs/photo_export_job.rb
 class PhotoExportJob < ApplicationJob
   queue_as :video_export
 

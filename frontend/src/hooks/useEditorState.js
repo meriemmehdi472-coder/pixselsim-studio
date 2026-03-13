@@ -1,13 +1,3 @@
-// hooks/useEditorState.js
-//
-// Hook orchestrateur de l'éditeur.
-// Délègue chaque responsabilité à un hook spécialisé :
-//   - useHistrq      → undo/redo des calques
-//   - uselayers      → gestion des calques et drag & drop
-//   - usephotocrop   → recadrage photo (canvas natif)
-//   - useVideocrop   → recadrage vidéo (ffmpeg serveur)
-//   - useExport      → export photo (synchrone) et vidéo (asynchrone)
-//
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useApi } from "./useApi";
@@ -190,3 +180,16 @@ export function useEditorState(initialMediaFile) {
     containerRef, canvasWrapRef, imgRef,
   };
 }
+
+
+
+
+
+// Hook orchestrateur de l'éditeur.
+// Délègue chaque responsabilité à un hook spécialisé :
+//   - useHistrq      → undo/redo des calques
+//   - uselayers      → gestion des calques et drag & drop
+//   - usephotocrop   → recadrage photo (canvas natif)
+//   - useVideocrop   → recadrage vidéo (ffmpeg serveur)
+//   - useExport      → export photo (synchrone) et vidéo (asynchrone)
+//

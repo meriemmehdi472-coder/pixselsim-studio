@@ -1,12 +1,3 @@
-# app/services/video_compositor_service.rb
-#
-# Ce service prend une vidéo existante et y applique des effets via ffmpeg :
-#   - Recadrage (crop)
-#   - Calques texte incrustés
-#   - Cadres / formes (border, clip)
-#
-# Utilisé par VideoExportJob après qu'un utilisateur clique sur "Exporter".
-#
 require "open3"
 
 class VideoCompositorService
@@ -154,3 +145,18 @@ class VideoCompositorService
     style.scan(/#[0-9a-fA-F]{3,6}/).first
   end
 end
+
+
+
+
+
+
+
+
+# Ce service prend une vidéo existante et y applique des effets via ffmpeg :
+#   - Recadrage (crop)
+#   - Calques texte incrustés
+#   - Cadres / formes (border, clip)
+#
+# Utilisé par VideoExportJob après qu'un utilisateur clique sur "Exporter".
+#

@@ -1,11 +1,3 @@
-# app/controllers/api/v1/sessions_controller.rb
-#
-# Gère la connexion et la déconnexion par email/mot de passe.
-#
-# POST   /api/v1/login   → connexion
-# DELETE /api/v1/logout  → déconnexion
-# GET    /api/v1/me      → retourne l'utilisateur connecté (pour hydrater le front au refresh)
-#
 module Api
   module V1
     class SessionsController < ApplicationController
@@ -60,3 +52,17 @@ module Api
     end
   end
 end
+
+
+
+
+
+
+
+
+# Gère la connexion et la déconnexion par email/mot de passe.
+#
+# POST   /api/v1/login   → connexion
+# DELETE /api/v1/logout  → déconnexion
+# GET    /api/v1/me      → retourne l'utilisateur connecté (pour hydrater le front au refresh)
+#

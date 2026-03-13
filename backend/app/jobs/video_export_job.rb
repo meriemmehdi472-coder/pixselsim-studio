@@ -1,15 +1,3 @@
-# app/jobs/video_export_job.rb
-#
-# Job asynchrone qui traite l'export vidéo via ffmpeg.
-# Exécuté par Solid Queue dans une queue dédiée "video_export"
-# pour ne pas bloquer les autres jobs (emails, etc.).
-#
-# Cycle de vie :
-#   pending → processing → done (ou failed)
-#
-# Le front-end poll GET /api/v1/exports/:token toutes les 2s
-# et reçoit la notification finale via ActionCable.
-#
 class VideoExportJob < ApplicationJob
   # Queue dédiée pour isoler les exports vidéo (qui sont lourds en CPU)
   queue_as :video_export
@@ -79,3 +67,19 @@ class VideoExportJob < ApplicationJob
     VideoExport.find_by(token: export_token)&.update!(status: "failed", error: e.message.truncate(500))
   end
 end
+
+
+
+
+
+
+# Job asynchrone qui traite l'export vidéo via ffmpeg.
+# Exécuté par Solid Queue dans une queue dédiée "video_export"
+# pour ne pas bloquer les autres jobs (emails, etc.).
+#
+# Cycle de vie :
+#   pending → processing → done (ou failed)
+#
+# Le front-end poll GET /api/v1/exports/:token toutes les 2s
+# et reçoit la notification finale via ActionCable.
+#

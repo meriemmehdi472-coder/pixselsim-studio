@@ -1,8 +1,3 @@
-// components/FrameOverlay.jsx
-// Le cadre = un div transparent positionné PAR-DESSUS le média.
-// Il applique UNIQUEMENT la bordure + le contour de sélection + les poignées.
-// Le clip de la forme est appliqué directement sur le média via style inline
-// (géré dans EditorCanvas via frameClipStyle).
 import { useCallback } from "react";
 
 const HANDLES = [
@@ -169,3 +164,15 @@ export default function FrameOverlay({
     </div>
   );
 }
+
+
+
+
+
+
+
+
+// Le cadre = un div transparent positionné PAR-DESSUS le média.
+// Il applique UNIQUEMENT la bordure + le contour de sélection + les poignées.
+// Le clip de la forme est appliqué directement sur le média via style inline
+// (géré dans EditorCanvas via frameClipStyle).

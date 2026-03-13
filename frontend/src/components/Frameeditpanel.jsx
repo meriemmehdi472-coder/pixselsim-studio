@@ -1,5 +1,3 @@
-// components/FrameEditPanel.jsx
-// Panneau de modification du cadre sélectionné dans la sidebar.
 import { COLORS, FONT } from "../styles";
 
 const COLORS_PALETTE = [

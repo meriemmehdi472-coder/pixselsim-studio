@@ -1,9 +1,3 @@
-// hooks/useHistory.js
-//
-// Gestion générique de l'historique undo/redo.
-// Stocke un tableau d'états et un index courant.
-// push() ajoute un état, undo/redo déplacent l'index.
-//
 import { useState, useRef, useCallback } from "react";
 
 export function useHistrq(initial) {
@@ -36,3 +30,10 @@ export function useHistrq(initial) {
     canRedo:  index < history.length - 1,
   };
 }
+
+
+
+// Gestion générique de l'historique undo/redo.
+// Stocke un tableau d'états et un index courant.
+// push() ajoute un état, undo/redo déplacent l'index.
+//

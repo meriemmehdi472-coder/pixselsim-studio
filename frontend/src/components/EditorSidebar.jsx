@@ -1,4 +1,3 @@
-// components/EditorSidebar.jsx
 import { useState } from "react";
 import { COLORS, FONT } from "../styles";
 import ToolBar from "./ToolBar";

@@ -1,8 +1,3 @@
-# app/services/video_crop_service.rb
-#
-# Recadre une vidéo avec ffmpeg et retourne le chemin du fichier de sortie.
-# Les paramètres x, y, w, h sont exprimés en pixels NATIFS de la vidéo source.
-#
 class VideoCropService
   def initialize(media_file, crop)
     @media_file = media_file
@@ -58,3 +53,12 @@ class VideoCropService
     end
   end
 end
+
+
+
+
+
+
+# Recadre une vidéo avec ffmpeg et retourne le chemin du fichier de sortie.
+# Les paramètres x, y, w, h sont exprimés en pixels NATIFS de la vidéo source.
+#

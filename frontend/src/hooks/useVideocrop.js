@@ -1,9 +1,3 @@
-// hooks/useVideoCrop.js
-//
-// Recadrage vidéo côté serveur via ffmpeg.
-// Envoie les coordonnées de crop au backend qui génère une nouvelle version de la vidéo.
-// La nouvelle version est ajoutée à l'historique des médias pour permettre la navigation.
-//
 import { useState, useCallback } from "react";
 
 export function useVideocrop({ projectId, request, showToast, mediaVersionIdx, setMediaVersions, setMediaVersionIdx, mediaVersionsRef }) {
@@ -59,3 +53,12 @@ export function useVideocrop({ projectId, request, showToast, mediaVersionIdx, s
     handleVideoCropConfirm, cancelVideoCrop,
   };
 }
+
+
+
+
+
+// Recadrage vidéo côté serveur via ffmpeg.
+// Envoie les coordonnées de crop au backend qui génère une nouvelle version de la vidéo.
+// La nouvelle version est ajoutée à l'historique des médias pour permettre la navigation.
+//

@@ -1,7 +1,3 @@
-// components/Framepicker.jsx
-// Identique à l'original mais onAdd transmet aussi frameColor et frameThickness
-// pour que l'export back-end (ImageMagick / ffmpeg) puisse utiliser ces valeurs.
-
 import { useState } from "react";
 import { COLORS, FONT } from "../styles";
 
@@ -146,3 +142,12 @@ export default function FramePicker({ onAdd }) {
 }
 
 const lbl = { fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, color: "#334155", marginBottom: 8, display: "block" };
+
+
+
+
+
+
+// Identique à l'original mais onAdd transmet aussi frameColor et frameThickness
+// pour que l'export back-end (ImageMagick / ffmpeg) puisse utiliser ces valeurs.
+

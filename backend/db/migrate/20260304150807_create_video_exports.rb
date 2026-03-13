@@ -1,7 +1,3 @@
-# db/migrate/TIMESTAMP_create_video_exports.rb
-# Renomme ce fichier avec : rails g migration CreateVideoExports
-# puis copie ce contenu
-
 class CreateVideoExports < ActiveRecord::Migration[7.2]
   def change
     create_table :video_exports do |t|

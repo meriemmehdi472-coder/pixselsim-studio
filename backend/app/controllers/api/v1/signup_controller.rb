@@ -1,10 +1,3 @@
-# app/controllers/api/v1/signup_controller.rb
-#
-# Gère l'inscription d'un nouvel utilisateur par email/mot de passe.
-#
-# POST /api/v1/signup
-# Body JSON : { user: { email:, password:, password_confirmation:, name: } }
-#
 module Api
   module V1
     class SignupController < ApplicationController
@@ -53,3 +46,15 @@ module Api
     end
   end
 end
+
+
+
+
+
+
+
+# Gère l'inscription d'un nouvel utilisateur par email/mot de passe.
+#
+# POST /api/v1/signup
+# Body JSON : { user: { email:, password:, password_confirmation:, name: } }
+#
