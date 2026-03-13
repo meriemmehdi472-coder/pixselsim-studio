@@ -1,7 +1,4 @@
-// hooks/useExport.js
-//
-// Gestion de l'export photo (synchrone) et vidéo (asynchrone avec polling).
-//
+
 // Export photo  : rendu canvas côté client → téléchargement direct
 // Export vidéo  : requête backend → token → polling toutes les 2s → téléchargement auto
 //
