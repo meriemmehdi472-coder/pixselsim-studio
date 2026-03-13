@@ -9,19 +9,26 @@ module Api
   module V1
     class SignupController < ApplicationController
 
-      
       # POST /api/v1/signup
       def create
         @user = User.new(signup_params)
 
         if @user.save
-          # Connecte automatiquement l'utilisateur après inscription
-          session[:user_id] = @user.id
-
-          render json: {
-            message: "Compte créé avec succès",
-            user: serialize_user(@user)
-          }, status: :created
+          if Rails.env.production?
+            token = @user.generate_auth_token
+            render json: {
+              message: "Compte créé avec succès",
+              user: serialize_user(@user),
+              token: token
+            }, status: :created
+          else
+            # Connecte automatiquement l'utilisateur après inscription
+            session[:user_id] = @user.id
+            render json: {
+              message: "Compte créé avec succès",
+              user: serialize_user(@user)
+            }, status: :created
+          end
         else
           render json: {
             errors: @user.errors.full_messages

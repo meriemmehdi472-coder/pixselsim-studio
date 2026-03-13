@@ -9,7 +9,6 @@
 module Api
   module V1
     class SessionsController < ApplicationController
-      before_action :authenticate!
       before_action :authenticate!, only: [:destroy, :me]
 
       # POST /api/v1/login
@@ -17,12 +16,20 @@ module Api
         @user = User.find_by(email: params[:email]&.downcase&.strip)
 
         if @user&.valid_password?(params[:password])
-          session[:user_id] = @user.id
-
-          render json: {
-            message: "Connexion réussie",
-            user: serialize_user(@user)
-          }, status: :ok
+          if Rails.env.production?
+            token = @user.generate_auth_token
+            render json: {
+              message: "Connexion réussie",
+              user: serialize_user(@user),
+              token: token
+            }, status: :ok
+          else
+            session[:user_id] = @user.id
+            render json: {
+              message: "Connexion réussie",
+              user: serialize_user(@user)
+            }, status: :ok
+          end
         else
           render json: { error: "Email ou mot de passe incorrect" }, status: :unauthorized
         end
