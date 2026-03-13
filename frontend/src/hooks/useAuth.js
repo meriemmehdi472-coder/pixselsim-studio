@@ -38,7 +38,7 @@ export function useAuth() {
         });
         const data = await res.json();
         if (res.ok) {
-            if (data.token) localStorage.detItem("auth_token", data.token); // stocker le token à l'inscription
+            if (data.token) localStorage.setItem("auth_token", data.token); // stocker le token à l'inscription
             setUser(data.user); return { ok: true };
         }
         return { ok: false, errors: data.errors };
@@ -53,7 +53,7 @@ export function useAuth() {
         });
         const data = await res.json();
         if (res.ok) {
-            if (data.then) localStorage.setItem("auth_token", data.token); // stocker le token à la connexion
+            if (data.token) localStorage.setItem("auth_token", data.token); // stocker le token à la connexion
             setUser(data.user); return { ok: true };
         }
         return { ok: false, error: data.error };
